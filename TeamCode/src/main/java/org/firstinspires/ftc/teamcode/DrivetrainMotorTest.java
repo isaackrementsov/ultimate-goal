@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.api.Robot;
 
+@TeleOp
 public class DrivetrainMotorTest extends OpMode {
 
     private Robot bot;

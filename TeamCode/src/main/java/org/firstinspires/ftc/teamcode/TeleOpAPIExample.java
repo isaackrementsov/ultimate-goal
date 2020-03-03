@@ -7,6 +7,7 @@ import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.teamcode.api.Robot;
 
+@TeleOp
 public class TeleOpAPIExample extends OpMode {
 
     private Robot bot;
@@ -16,7 +17,7 @@ public class TeleOpAPIExample extends OpMode {
     public void init(){
         this.bot = new Robot(hardwareMap, telemetry);
 
-        bot.addDrivetrain(new String[]{"mRF", "mLF", "mRB", "mLB"}, false);
+        bot.addDrivetrain(new String[]{"mRF", "mLF", "mRB", "mLB"}, true);
     }
 
     public void loop() {
