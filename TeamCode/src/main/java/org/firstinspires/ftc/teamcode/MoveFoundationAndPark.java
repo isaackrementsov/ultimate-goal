@@ -7,6 +7,7 @@ import com.qualcomm.robotcore.hardware.TouchSensor;
 
 import org.firstinspires.ftc.teamcode.api.Robot;
 
+@Autonomous
 public class MoveFoundationAndPark extends LinearOpMode {
 
     private Robot bot;
@@ -43,7 +44,7 @@ public class MoveFoundationAndPark extends LinearOpMode {
         bot.resetServo("bumper", 0);
 
         waitForStart();
-
+        bot.drive(1.0, 30, Robot.Direction.LEFT);
         //driveToFoundation();
         moveFoundation();
         //park();

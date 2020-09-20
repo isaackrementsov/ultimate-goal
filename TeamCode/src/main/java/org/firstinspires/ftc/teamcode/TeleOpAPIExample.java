@@ -18,9 +18,14 @@ public class TeleOpAPIExample extends OpMode {
         this.bot = new Robot(hardwareMap, telemetry);
 
         bot.addDrivetrain(new String[]{"mRF", "mLF", "mRB", "mLB"}, true);
+        bot.configureIMU();
     }
 
     public void loop() {
+        double imuData = bot.getAngularOrientation();
+
+        telemetry.addData("Angular orientation", imuData);
+
         double leftX = gamepad1.left_stick_x;
         double rightX = gamepad1.right_stick_x;
         double rightY = gamepad1.right_stick_y;
