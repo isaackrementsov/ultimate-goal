@@ -55,13 +55,19 @@ public class AutonDraft extends LinearOpMode {
         if(tfod != null){
             tfod.activate();
 
-            determineTargetZone();
+            // Determine where to deliver the Wobble Goal
+            char zone = determineTargetZone();
+            telemetry.addData("Target Zone: ", zone);
+            telemetry.update();
+
+            // Park the robot on the Launch Line
+            parkOnLine();
 
             tfod.shutdown();
         }
     }
 
-    private String determineTargetZone(){
+    private char determineTargetZone(){
         // Get updated object recognition data from TensorFlow
         List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
         // Number of rings in the starter stack
@@ -79,15 +85,20 @@ public class AutonDraft extends LinearOpMode {
         // Determine target zone based on starter stack
         switch(stackedRings){
             case 0:
-                return "A";
+                return 'a';
             case 1:
-                return "B";
+                return 'b';
             case 4:
-                return "C";
-            // If the stack size is not 0, 1, or 4, the target zone is unknown
+                return 'c';
+            // If the stack size is not 0, 1, or 4, the target zone is unknown (alert if this happens)
             default:
-                return null;
+                return 'd';
         }
+    }
+
+    private void parkOnLine(){
+        this.bot.drive(LOW_POWER, TILE_SIZE, Robot.Direction.LEFT);
+        this.bot.drive(LOW_POWER, TILE_SIZE*3, Robot.Direction.FORWARD);
     }
 
     private void initVuforia(){
