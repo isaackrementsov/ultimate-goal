@@ -55,8 +55,10 @@ public class AutonDraft extends LinearOpMode {
         if(tfod != null){
             tfod.activate();
 
-            // Determine where to deliver the Wobble Goal
-            char zone = determineTargetZone();
+            // Determine where to deliver the Wobble Goal by looking at the starter stack
+            // Give the bot 2 seconds to look
+            char zone = determineTargetZone(2000);
+
             telemetry.addData("Target Zone: ", zone);
             telemetry.update();
 
@@ -67,17 +69,27 @@ public class AutonDraft extends LinearOpMode {
         }
     }
 
-    private char determineTargetZone(){
-        // Get updated object recognition data from TensorFlow
-        List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
+    private char determineTargetZone(int waitTime){
         // Number of rings in the starter stack
         int stackedRings = 0;
 
-        if(updatedRecognitions != null){
-            // For each ring seen by TensorFlow, increase the starter stack size
-            for(Recognition object: updatedRecognitions){
-                if(object.getLabel().equals(RING_LABEL)){
-                    stackedRings++;
+        // Define time that the robot should be done looking at the stack
+        long t = System.currentTimeMillis();
+        long end = t + waitTime;
+
+        // Continue checking for rings until the time runs out or stacked rings are detected
+        while(System.currentTimeMillis() < end && stackedRings == 0){
+            // Get updated object recognition data from TensorFlow
+            List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
+
+            if(updatedRecognitions != null){
+                telemetry.addData("Recognition!", "");
+                telemetry.update();
+                // For each ring seen by TensorFlow, increase the starter stack size
+                for(Recognition object: updatedRecognitions){
+                    if(object.getLabel().equals(RING_LABEL)){
+                        stackedRings++;
+                    }
                 }
             }
         }
