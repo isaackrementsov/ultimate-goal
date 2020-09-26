@@ -62,8 +62,8 @@ public class AutonDraft extends LinearOpMode {
             telemetry.addData("Target Zone: ", zone);
             telemetry.update();
 
-            // Park the robot on the Launch Line
-            parkOnLine();
+            // Park the robot on the launch line based on where it is after driving to target zone
+            parkOnLine(driveToTargetZone(zone));
 
             tfod.shutdown();
         }
@@ -108,9 +108,55 @@ public class AutonDraft extends LinearOpMode {
         }
     }
 
-    private void parkOnLine(){
-        this.bot.drive(LOW_POWER, TILE_SIZE, Robot.Direction.LEFT);
-        this.bot.drive(LOW_POWER, TILE_SIZE*3, Robot.Direction.FORWARD);
+    private int[] driveToTargetZone(char zone){
+        int driveBackward = 0;
+        int driveLeft = 0;
+
+        bot.drive(LOW_POWER, TILE_SIZE*3.5, Robot.Direction.FORWARD);
+
+        switch(zone){
+            case 'a':
+                bot.drive(LOW_POWER, TILE_SIZE*1.5, Robot.Direction.RIGHT);
+
+                driveBackward = 0;
+                driveLeft = 3;
+
+                break;
+            case 'b':
+                bot.drive(LOW_POWER, TILE_SIZE, Robot.Direction.FORWARD);
+                bot.drive(LOW_POWER, TILE_SIZE*0.5, Robot.Direction.RIGHT);
+
+                driveBackward = 1;
+                driveLeft = 2;
+
+                break;
+            case 'c':
+                bot.drive(LOW_POWER, TILE_SIZE*2, Robot.Direction.FORWARD);
+                bot.drive(LOW_POWER, TILE_SIZE*1.5, Robot.Direction.RIGHT);
+
+                driveBackward = 2;
+                driveLeft = 3;
+
+                break;
+        }
+
+        dropWobbleGoal();
+
+        return new int[]{driveBackward, driveLeft};
+    }
+
+    private void dropWobbleGoal(){
+        bot.stop();
+    }
+
+    private void parkOnLine(int[] directions){
+        int driveBackward = directions[0];
+        int driveLeft = directions[1];
+
+        bot.drive(LOW_POWER, TILE_SIZE*driveLeft, Robot.Direction.LEFT);
+        bot.drive(LOW_POWER, TILE_SIZE*driveBackward, Robot.Direction.BACKWARD);
+
+        bot.stop();
     }
 
     private void initVuforia(){
