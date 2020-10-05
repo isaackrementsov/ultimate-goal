@@ -1,0 +1,103 @@
+
+package org.firstinspires.ftc.teamcode;
+
+import org.firstinspires.ftc.teamcode.api.Robot;
+
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+
+
+
+
+@Autonomous
+public class APIOpMode extends LinearOpMode {
+
+    Robot bot;
+    bot.addDcMotor("Vroom!", 'Something', 'also something');
+    double targX = 0.0;
+    int target = 0; /* 0 = low goal, 1 = medium goal, 2 = high goal, 3 = power sticks */
+    boolean check1 = false;
+    boolean check2 = false;
+    int I_am_speed = 0;
+    boolean directionn = true;
+    boolean go_1 = true;
+    boolean sure = true;
+    public void runOpMode() {
+
+        this.bot = new Robot(hardwareMap);
+        bot.addColorSensor("color", 1);
+        bot.addDistanceSensor("notcolor", false);
+
+        bot.addDrivetrain(
+                new String[]{"mRF", "mLF", "mRB", "mLB"}, //Names must be right-front, left-front, right-back, left-back
+                new double[]{/* motor info goes here */},
+                new double[]{/* Motor info goes here */},
+                1,
+                true
+        );
+
+
+
+        waitForStart();
+            while (sure == true){
+                if (targX > 0.2){
+                    bot.rotate(0.5, 2);
+
+                }
+                if(targX < -0.2){
+                    bot.rotate(0.5, -2);
+
+                }
+                if(targX >= -0.2 && targX <= 0.2){
+                    check1 = true;
+                }
+                if (target == 0){
+                    I_am_speed = 3; /* all these I_am_speed values are temporary and NOT for actual use */
+                }
+                if (target == 1){
+                    I_am_speed = 7;
+                }
+                if (target == 2){
+                    I_am_speed = 10;
+                }
+                if (target == 3){
+                    I_am_speed = 9;
+                }
+                if(check1 == true){
+                    "Activate_loading_mechanism()"
+                    bot.moveDcMotor("Vroom!" 100, I_am_speed);
+                    check1 == false;
+
+                }
+                "example_CV_function_that_deactivates_loop();"
+
+            }
+            /* Literally everything else goes above this loop*/
+            while (go_park == true){
+
+                final int[] color = bot.getColorRGBA("color");
+                double distance = bot.getDistanceCM("notcolor");
+                if(directionn == true) {
+                    bot.drive(0.25, 1, Robot.Direction.FORWARD);
+                }
+                if(directionn == false){
+                    bot.drive(0.25, 1, Robot.Direction.BACKWARD);
+                }
+                if ((color[0]+color[1])+color[2] => 765){
+                    go_1 = false;
+                    go_park = false;
+
+                }
+                if(distance =< 25){
+                    directionn = false;
+                }
+
+
+            }
+            if (go_1 == false){
+                break;
+            }
+            break;
+    }
+
+}
