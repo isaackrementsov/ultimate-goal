@@ -12,22 +12,32 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 public class Parking_Script_V0.3 {
 
     Robot bot;
+    // Ring yeeter prep stuff
     bot.addDcMotor("Vroom!", 'Something', 'also something');
-    bot.addDcMotor("Da_rings_r_mine" , 'put info here', 'also here');
     double targX = 0.0;
     int target = 0; /* 0 = low goal, 1 = medium goal, 2 = high goal, 3 = power sticks */
     boolean check1 = false;
-    boolean check2 = false;
     int I_am_speed = 0;
+
+    // Ring getter
+    bot.addDcMotor("Da_rings_r_mine" , 'put info here', 'also here');
+
+    // Tape measure thing
     double ring_dist;
     bot.addServo("Tape_Thing", 180, 60, 60);
     bot.addDcMotor("No_the_rings_r_MINE", 'more info', 'even more info');
+
+    // Ring getter flipper thing
+        bot.addServo("Lock", 180, 0, 90);
+
+    //Launch line parking stuff
     boolean directionn = true;
     boolean go_1 = true;
     boolean sure = true;
     public void runOpMode() {
 
         this.bot = new Robot(hardwareMap);
+        //More launch line stuff
         bot.addColorSensor("color", 1);
         bot.addDistanceSensor("notcolor", false);
 
@@ -42,6 +52,7 @@ public class Parking_Script_V0.3 {
 
 
         waitForStart(){
+            //Ring yeeter
         while(sure==true){
             if(targX>0.2){
                 bot.rotate(0.5,2);
@@ -72,14 +83,15 @@ public class Parking_Script_V0.3 {
                 check1==false;
 
             }
-        if("example_CV_function_that_deactivates_loop();"){
-         sure = false;
+         targX = "CV function that outputs x of target()"
+         target = "CV function that outputs which target we are using()"
+            if ("Some function()" == true){
+                sure = false;
         }
-
         }
         /* Literally everything else goes above this loop*/
         while(go_park==true){
-
+    // Launch line parking loop
     final int[]color=bot.getColorRGBA("color");
            double distance=bot.getDistanceCM("notcolor");
             if(directionn==true){
@@ -103,13 +115,20 @@ public class Parking_Script_V0.3 {
         }
 
         }
-
+        Getter_Flip(){
+            //Flips the ring getter down and locks it into place
+            bot.drive(2, 10, Robot.Direction.FORWARD);
+            bot.drive(1.5, 10, Robot.Direction.BACKWARD);
+            bot.rotateServo("Lock" 90, 50);
+        }
         ring_Getter(){
+            //gets rings
         bot.drive(0.5,5,Robot.Direction.FORWARD);
         TimeUnit.SECONDS.sleep(0.25);
         bot.moveDcMotor("Da_rings_r_mine",50,4);
         }
         Tape_extender(){
+            //Uses the tape thing
         bot.resetServo("Tape_Thing", 0);
         TimeUnit.SECONDS.sleep(0.5);
         bot.rotateServo("Tape_Thing", 15, 50);
@@ -121,3 +140,8 @@ public class Parking_Script_V0.3 {
         }
         }
 }
+
+
+
+
+
