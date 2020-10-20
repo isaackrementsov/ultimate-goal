@@ -24,22 +24,22 @@ public class APIOpMode extends OpMode {
     }
 
     public void loop() {
-        if (gamepad1."r1"){
+        if (gamepad1.RightBumper){
             bot.moveDcMotor("No_the_rings_r_MINE", 5, 4);
         }
-        if(gamepad1."l1"){
+        if(gamepad1.LeftBumper){
             bot.moveDcMotor("No_the_rings_r_MINE", -5, 4);
         }
-        if (gamepad1."dpadup"){
+        if (gamepad1.DpadUp){
             bot.rotateServo("Tape_Thing", 5, 50);
         }
-        if(gamepad1."dpaddown"){
+        if(gamepad1.DpadDown){
             bot.rotateServo("Tape_Thing", -5, 50);
         }
-        if(gamepad1."r2"){
+        if(gamepad1.RightTrigger){
             bot.moveDcMotor("Da_rings_r_mine", 5, 10);
         }
-        if(gamepad1."l2"){
+        if(gamepad1.LeftTrigger){
             bot.moveDcMotor("Da_rings_r_mine", -5, 10);
         }
         
