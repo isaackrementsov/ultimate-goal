@@ -96,8 +96,8 @@ public class Robot {
     public double rotationCoefficient;
 
     // Computer vision information
-    private VuforiaLocalizer vuforia;
-    private TFObjectDetector tfod;
+    public VuforiaLocalizer vuforia;
+    public TFObjectDetector tfod;
 
     // Have Vuforia and TensorFlow been initialized yet?
     public boolean isCVReady = false;
@@ -791,7 +791,7 @@ public class Robot {
         vuforia = ClassFactory.getInstance().createVuforia(params);
     }
 
-    private void initTfod(String[] tfodModelAssets, String[] labels){
+    private void initTfod(String tfodModelAsset, String[] labels){
         int tfodMonitorViewID = hardwareMap.appContext.getResources().getIdentifier(
                 "tfodMonitorViewId",
                 "id",
@@ -802,18 +802,17 @@ public class Robot {
 
         tfod = ClassFactory.getInstance().createTFObjectDetector(params, vuforia);
 
-        for(int i = 0; i < tfodModelAssets.length; i++){
-            tfod.loadModelFromAsset(tfodModelAssets[i], labels[i]);
-        }
+        tfod.loadModelFromAsset(tfodModelAsset, labels);
     }
 
     // Initialize TensorFlow and Vuforia
-    public void initCV(String vuforiaKey, VuforiaLocalizer.CameraDirection camera, String[] tfodModelAssets, String[] labels){
+    public void initCV(String vuforiaKey, VuforiaLocalizer.CameraDirection camera, String tfodModelAsset, String[] labels){
         initVuforia(vuforiaKey, camera);
 
         if(ClassFactory.getInstance().canCreateTFObjectDetector()){
-            initTfod(tfodModelAssets, labels);
+            initTfod(tfodModelAsset, labels);
             isCVReady = true;
+            tfod.activate();
         }else{
             telemetry.addData("Error:", "This device is not compatible with TFOD");
         }
@@ -824,10 +823,27 @@ public class Robot {
             Recognition matched = null;
             List<Recognition> recognitions = tfod.getUpdatedRecognitions();
 
-            for(Recognition recognition: recognitions){
+            for(Recognition recognition : recognitions){
                 if(recognition.getLabel().equals(label)){
                     matched = recognition;
                     break;
+                }
+            }
+
+            return matched;
+        }else{
+            throw new CVInitializationException();
+        }
+    }
+
+    public List<Recognition> recognizeAll(String label) throws CVInitializationException {
+        if(isCVReady){
+            List<Recognition> matched = new ArrayList<>();
+            List<Recognition> recognitions = tfod.getUpdatedRecognitions();
+
+            for(Recognition recognition : recognitions){
+                if(recognition.getLabel().equals(label)){
+                    matched.add(recognition);
                 }
             }
 

@@ -42,19 +42,16 @@ public class AutonDraft extends LinearOpMode {
                 true
         );
 
-        initVuforia();
-
-        if(ClassFactory.getInstance().canCreateTFObjectDetector()){
-            initTfod();
-        }else{
-            telemetry.addData("Error:", "This device is not compatible with TFOD");
-        }
+        bot.initCV(
+            VUFORIA_KEY,
+            VuforiaLocalizer.CameraDirection.BACK,
+            TFOD_MODEL_ASSET,
+            new String[]{RING_LABEL}
+        );
 
         waitForStart();
 
-        if(tfod != null){
-            tfod.activate();
-
+        if(bot.isCVReady){
             // Determine where to deliver the Wobble Goal by looking at the starter stack
             // Give the bot 2 seconds to look
             char zone = determineTargetZone(2000);
@@ -81,17 +78,11 @@ public class AutonDraft extends LinearOpMode {
         // Continue checking for rings until the time runs out or stacked rings are detected
         while(System.currentTimeMillis() < end && stackedRings == 0){
             // Get updated object recognition data from TensorFlow
-            List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
-
-            if(updatedRecognitions != null){
-                telemetry.addData("Recognition!", "");
-                telemetry.update();
-                // For each ring seen by TensorFlow, increase the starter stack size
-                for(Recognition object: updatedRecognitions){
-                    if(object.getLabel().equals(RING_LABEL)){
-                        stackedRings++;
-                    }
-                }
+            try {
+                List<Recognition> rings = bot.recognizeAll(RING_LABEL);
+                stackedRings = rings.size();
+            }catch(Exception e){
+                return 0;
             }
         }
 
