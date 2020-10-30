@@ -26,7 +26,7 @@ public class AutonDraft extends LinearOpMode {
     private final String TFOD_MODEL_ASSET = "Skystone.tflite";
     private final String RING_LABEL = "Stone";
 
-    private final double TILE_SIZE = 60.96;
+    private final double TILE_SIZE = 10.96; //60.96
 
     private double LOW_POWER = 0.2;
     private double HIGH_POWER = 1;
@@ -63,7 +63,8 @@ public class AutonDraft extends LinearOpMode {
             telemetry.update();
 
             // Park the robot on the launch line based on where it is after driving to target zone
-            parkOnLine(driveToTargetZone(zone));
+            int[] directions = driveToTargetZone(zone);
+            parkOnLine(directions);
 
             tfod.shutdown();
         }
@@ -147,6 +148,8 @@ public class AutonDraft extends LinearOpMode {
 
     private void dropWobbleGoal(){
         bot.stop();
+        telemetry.addData("Dropped Wobble Goal!", "");
+        telemetry.update();
     }
 
     private void parkOnLine(int[] directions){

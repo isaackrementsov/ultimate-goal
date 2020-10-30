@@ -30,6 +30,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.TouchSensor;
 
+import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
@@ -38,9 +39,13 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
+import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
+import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 public class Robot {
 
@@ -89,6 +94,13 @@ public class Robot {
 
     // This is the experimentally determined rotation coefficient of the bot (https://www.notion.so/Using-the-Robohawks-Team-API-0fb3006b5b564965b06749fd3fcd6c67#421a6b7240b743fd8aa075dbd2c60bfb)
     public double rotationCoefficient;
+
+    // Computer vision information
+    private VuforiaLocalizer vuforia;
+    private TFObjectDetector tfod;
+
+    // Have Vuforia and TensorFlow been initialized yet?
+    public boolean isCVReady = false;
 
     public void configureIMU(){
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
@@ -298,19 +310,19 @@ public class Robot {
             switch(i){
                 case 0:
                     // For motor right front, +power=forward, +strafe=forward, +yaw=forward
-                    motorPower = power + strafe + yaw;
+                    motorPower = power + strafe - yaw;
                     break;
                 case 1:
                     // For motor left front, +power=forward, +strafe=reverse, +yaw=reverse
-                    motorPower = power - strafe - yaw;
+                    motorPower = power - strafe + yaw;
                     break;
                 case 2:
                     // For motor right back, +power=forward, +strafe=reverse, +yaw=forward
-                    motorPower = power - strafe + yaw;
+                    motorPower = power - strafe - yaw;
                     break;
                 case 3:
                     // For motor left back, +power=forward, +strafe=forward, +yaw=reverse
-                    motorPower = power + strafe - yaw;
+                    motorPower = power + strafe + yaw;
             }
 
             // Mutliply power by the speed setting for the motor
@@ -326,11 +338,11 @@ public class Robot {
         double[] powers = new double[4];
 
         for(int i = 0; i < drivetrain.length; i++){
-            double motorPower = power;
+            double motorPower = -power;
 
             // Both left motors will need to be reversed
             if(i % 2 == 1) {
-                motorPower = -power;
+                motorPower = power;
             }
 
             powers[i] = motorPower;
@@ -353,11 +365,6 @@ public class Robot {
         for(int i = 0; i < drivetrain.length; i++){
             dcMotors.get(drivetrain[i]).setPower(powers[i]);
         }
-
-        /*
-            FTC's automatic RUN_TO_POSITION mode attempts to spin the left motors forward to compensate for
-            what it sees as slipping, so encoders must be read manually
-        */
 
         // Select a test motor to keep track of the drivetrain's overall progress in reaching the target position
         DcMotor test = dcMotors.get(drivetrain[0]);
@@ -418,12 +425,8 @@ public class Robot {
         TouchSensor[] sensors = limitSwitches.get(actionId);
 
         while(!arePressed(sensors, behavior)){
-            telemetry.addData("Driving", "");
-            telemetry.update();
             drive(power, direction);
         }
-        telemetry.addData("Done driving", "");
-        telemetry.update();
 
         actions.get(actionId).run(this);
     }
@@ -779,6 +782,93 @@ public class Robot {
         return sensorToUse.getDistance(DistanceUnit.CM);
     }
 
+    private void initVuforia(String vuforiaKey, VuforiaLocalizer.CameraDirection camera){
+        VuforiaLocalizer.Parameters params = new VuforiaLocalizer.Parameters();
+
+        params.vuforiaLicenseKey = vuforiaKey;
+        params.cameraDirection = camera;
+
+        vuforia = ClassFactory.getInstance().createVuforia(params);
+    }
+
+    private void initTfod(String[] tfodModelAssets, String[] labels){
+        int tfodMonitorViewID = hardwareMap.appContext.getResources().getIdentifier(
+                "tfodMonitorViewId",
+                "id",
+                hardwareMap.appContext.getPackageName()
+        );
+
+        TFObjectDetector.Parameters params = new TFObjectDetector.Parameters(tfodMonitorViewID);
+
+        tfod = ClassFactory.getInstance().createTFObjectDetector(params, vuforia);
+
+        for(int i = 0; i < tfodModelAssets.length; i++){
+            tfod.loadModelFromAsset(tfodModelAssets[i], labels[i]);
+        }
+    }
+
+    // Initialize TensorFlow and Vuforia
+    public void initCV(String vuforiaKey, VuforiaLocalizer.CameraDirection camera, String[] tfodModelAssets, String[] labels){
+        initVuforia(vuforiaKey, camera);
+
+        if(ClassFactory.getInstance().canCreateTFObjectDetector()){
+            initTfod(tfodModelAssets, labels);
+            isCVReady = true;
+        }else{
+            telemetry.addData("Error:", "This device is not compatible with TFOD");
+        }
+    }
+
+    public Recognition recognize(String label) throws CVInitializationException {
+        if(isCVReady){
+            Recognition matched = null;
+            List<Recognition> recognitions = tfod.getUpdatedRecognitions();
+
+            for(Recognition recognition: recognitions){
+                if(recognition.getLabel().equals(label)){
+                    matched = recognition;
+                    break;
+                }
+            }
+
+            return matched;
+        }else{
+            throw new CVInitializationException();
+        }
+    }
+
+    public void autoAlign(String targetLabel, double centerPoint) throws CVInitializationException {
+        // Coefficient that multiplies error for rotation speed (maybe implement PID later)
+        double p = 0.5;
+        // Threshold for the target to be "close enough" to centered, measured as proportion of total image width
+        double threshold = 1e-3;
+        // Initialize the error variable
+        double error = getError(targetLabel, centerPoint);
+
+        while(Math.abs(error) > threshold){
+            drive(1, p*error, 0, 0);
+            error = getError(targetLabel, centerPoint);
+        }
+
+        stop();
+    }
+
+    // Output target distance from center point as a proportion to overall image size
+    private double getError(String targetLabel, double centerPoint) throws CVInitializationException {
+        Recognition target = recognize(targetLabel);
+
+        if(target != null){
+            double x1 = target.getLeft();
+            double x2 = target.getRight();
+
+            double unscaled = (x1 + x2)/2 - centerPoint;
+
+            return unscaled/target.getImageWidth();
+        }else{
+            return 1;
+        }
+    }
+
     public Robot(HardwareMap hardwareMap, Telemetry telemetry){
         this.telemetry = telemetry;
         this.hardwareMap = hardwareMap;
@@ -794,5 +884,13 @@ public class Robot {
 
     public static interface Action {
         public void run(Robot bot);
+    }
+
+    // All public CV methods should throw this exception if !isCVReady
+    public static class CVInitializationException extends Exception {
+        // Exception to explain CV is not initialized
+        public CVInitializationException(){
+            super("Please use the initCV method before invoking TensorFlow or Vuforia functions");
+        }
     }
 }
