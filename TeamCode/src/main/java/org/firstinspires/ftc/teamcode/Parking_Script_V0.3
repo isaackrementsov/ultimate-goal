@@ -30,8 +30,8 @@ public void runOpMode() {
 public void init(){
         // Tape measure thing
         double ring_dist;
-        bot.addServo("Tape_Thing", 180, 60, 60);
-        bot.addDcMotor("No_the_rings_r_MINE", 'more info', 'even more info');
+        
+        bot.addDcMotor("No_the_rings_r_MINE");
         //More launch line stuff
         bot.addColorSensor("color", 1);
         bot.addDistanceSensor("notcolor", false);
@@ -40,15 +40,14 @@ public void init(){
         boolean go_1 = true;
         boolean sure = true;
         // Ring yeeter prep stuff
-        bot.addDcMotor("Vroom!", 'Something', 'also something');
+        bot.addDcMotor("Vroom!",);
         double targX = 0.0;
         int target = 0; /* 0 = low goal, 1 = medium goal, 2 = high goal, 3 = power sticks */
         boolean check1 = false;
         int I_am_speed = 0;
         // Ring getter
-        bot.addDcMotor("Da_rings_r_mine" , 'put info here', 'also here');
-        // Ring getter flipper thing
-        bot.addServo("Lock", 180, 0, 90);
+        bot.addDcMotor("Da_rings_r_mine");
+
         }
         bot.addDrivetrain(
         new String[]{"mRF", "mLF", "mRB", "mLB"}, //Names must be right-front, left-front, right-back, left-back
@@ -124,28 +123,17 @@ final int[]color=bot.getColorRGBA("color");
         }
 
         }
-public void Getter_Flip(){
-        //Flips the ring getter down and locks it into place
-        bot.drive(2, 10, Robot.Direction.FORWARD);
-        bot.drive(1.5, 10, Robot.Direction.BACKWARD);
-        bot.rotateServo("Lock" 90, 50);
-        }
+
 public void ring_Getter(){
         //gets rings
         bot.drive(0.5,5,Robot.Direction.FORWARD);
         TimeUnit.SECONDS.sleep(0.25);
+        bot.moveDcMotor("No_the_rings_are_MINE", 35, 4);
         bot.moveDcMotor("Da_rings_r_mine",50,4);
+        bot.moveDcMotor("No_the_rings_are_MINE", -35, 4);
         }
-public void Tape_extender(){
-        //Uses the tape thing
-        bot.resetServo("Tape_Thing", 0);
-        TimeUnit.SECONDS.sleep(0.5);
-        bot.rotateServo("Tape_Thing", 15, 50);
-        bot.moveDcMotor("No_the_rings_r_MINE", ring_dist+10, 1);
-        bot.rotateServo("Tape_Thing", -20, 50);
-        bot.moveDcMotor("No_the_rings_r_MINE", (-1*ring_dist), 1);
-        bot.resetServo("Tape_Thing", 0);
-        ring_Getter();
+
         }
         }
-        }
+
+
