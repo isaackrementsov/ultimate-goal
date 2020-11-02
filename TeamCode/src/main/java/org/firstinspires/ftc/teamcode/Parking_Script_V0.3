@@ -9,7 +9,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
 
 @Autonomous
-public class Parking_Script_V0.3 {
+public class Parking_Script_V1 {
 
         Robot bot;
         boolean directionn = true;
@@ -30,7 +30,9 @@ public void runOpMode() {
 public void init(){
         // Tape measure thing
         double ring_dist;
-        
+        // Wobble goal getter
+        bot.addServo("Goalthing", 180, 0, 90);
+        bot.resetServo("Goalthing", 0);
         bot.addDcMotor("No_the_rings_r_MINE");
         //More launch line stuff
         bot.addColorSensor("color", 1);
@@ -132,8 +134,16 @@ public void ring_Getter(){
         bot.moveDcMotor("Da_rings_r_mine",50,4);
         bot.moveDcMotor("No_the_rings_are_MINE", -35, 4);
         }
+public void wobble_getter(){
+        bot.rotateServo("Goalthing", 69, 50);
+        }
+public void wobble_dropper(){
+        bot.rotateServo("Goalthing", 0, 50);    
+        }
+        }
+        }
 
-        }
-        }
+
+
 
 
