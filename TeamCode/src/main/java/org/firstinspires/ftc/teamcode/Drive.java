@@ -14,7 +14,9 @@ public class Drive extends OpMode {
 
     public void init(){
         this.bot = new Robot(hardwareMap, telemetry);
+
         bot.addDrivetrain(new String[]{"mRF", "mLF", "mRB", "mLB"}, true);
+        bot.addDcMotor("intake", true);
 
         power = 0.5;
     }
@@ -23,10 +25,8 @@ public class Drive extends OpMode {
         double leftX = gamepad1.left_stick_x;
         double rightX = gamepad1.right_stick_x;
         double rightY = -gamepad1.right_stick_y; // Reads negative from the controller
-
-        leftX = Range.clip(leftX, -1, 1);
-        rightX = Range.clip(rightX, -1, 1);
-        rightY = Range.clip(rightY, -1, 1);
+        double triggerRight = gamepad1.right_trigger;
+        double triggerLeft = gamepad1.left_trigger;
 
         if (gamepad1.dpad_up) power = 0.9;
         if (gamepad1.dpad_right) power = 0.5;
@@ -44,6 +44,17 @@ public class Drive extends OpMode {
             // If the joysticks are not pressed, do not move the bot
             bot.stop();
         }
+
+        double intakePower = 0;
+        if(Math.abs(triggerRight) > 0.05) {
+            intakePower = triggerRight;
+        }else if(Math.abs(triggerLeft) > 0.05){
+            intakePower = -triggerLeft;
+        }else{
+            intakePower = 0;
+        }
+
+        bot.moveDcMotor("intake", intakePower);
     }
 
 }
