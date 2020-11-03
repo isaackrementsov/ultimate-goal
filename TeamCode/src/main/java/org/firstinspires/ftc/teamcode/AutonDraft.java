@@ -23,8 +23,9 @@ public class AutonDraft extends LinearOpMode {
     private TFObjectDetector tfod;
 
     private final String VUFORIA_KEY = "AY3aN3z/////AAABmUIe2Kd1wEt0nkr2MAal4OQiiEFWa3aLCHRnFBO1wd2HDT+GFXOTpcrhqEiZumOHpODdyVc55cYOiTSxpPrN+zfw7ZYB8X5z3gRLRIhPj4BJLD0/vPTKil7rDPSluUddISeCHL1HzPdIfiZiG/HQ89vhBdLfrWpngKLF4tH4FB4YWdKZu5J9EBtVTlXqR1OUXVTM3p9DepM9KukrVxMESF/ve+RYix7UXMO5qbljnc/LjQdplFO8oX4ztEe3aMXN14GadXggrfW+0m3nUmT8rXNTprc62LR1v0RbB4L+0QWfbgSDRyeMdBrvg8KIKLb1VFVrgUecbYBtHTTsLZALnU7oOOARnfGdtHC0aG3FAGxg";
-    private final String TFOD_MODEL_ASSET = "Skystone.tflite";
-    private final String RING_LABEL = "Stone";
+    private final String TFOD_MODEL_ASSET = "UltimateGoal.tflite";
+    private final String QUAD_LABEL = "Quad";
+    private final String SINGLE_LABEL = "Single";
 
     private final double TILE_SIZE = 10.96; //60.96
 
@@ -46,7 +47,7 @@ public class AutonDraft extends LinearOpMode {
             VUFORIA_KEY,
             VuforiaLocalizer.CameraDirection.BACK,
             TFOD_MODEL_ASSET,
-            new String[]{RING_LABEL}
+            new String[]{QUAD_LABEL, SINGLE_LABEL}
         );
 
         waitForStart();
@@ -79,8 +80,17 @@ public class AutonDraft extends LinearOpMode {
         while(System.currentTimeMillis() < end && stackedRings == 0){
             // Get updated object recognition data from TensorFlow
             try {
-                List<Recognition> rings = bot.recognizeAll(RING_LABEL);
-                stackedRings = rings.size();
+                Recognition quad = bot.recognize(QUAD_LABEL);
+                Recognition single = bot.recognize(SINGLE_LABEL);
+
+                // Determine number of rings based on stack type detected
+                if(quad != null){
+                    stackedRings = 4;
+                }else if(single != null){
+                    stackedRings = 1;
+                }else{
+                    stackedRings = 0;
+                }
             }catch(Exception e){
                 return 0;
             }
@@ -94,9 +104,6 @@ public class AutonDraft extends LinearOpMode {
                 return 'b';
             case 4:
                 return 'c';
-            // If the stack size is not 0, 1, or 4, the target zone is unknown (alert if this happens)
-            default:
-                return 'd';
         }
     }
 
