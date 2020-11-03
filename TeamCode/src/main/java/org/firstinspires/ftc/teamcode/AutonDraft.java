@@ -19,9 +19,6 @@ public class AutonDraft extends LinearOpMode {
 
     private Robot bot;
 
-    private VuforiaLocalizer vuforia;
-    private TFObjectDetector tfod;
-
     private final String VUFORIA_KEY = "AY3aN3z/////AAABmUIe2Kd1wEt0nkr2MAal4OQiiEFWa3aLCHRnFBO1wd2HDT+GFXOTpcrhqEiZumOHpODdyVc55cYOiTSxpPrN+zfw7ZYB8X5z3gRLRIhPj4BJLD0/vPTKil7rDPSluUddISeCHL1HzPdIfiZiG/HQ89vhBdLfrWpngKLF4tH4FB4YWdKZu5J9EBtVTlXqR1OUXVTM3p9DepM9KukrVxMESF/ve+RYix7UXMO5qbljnc/LjQdplFO8oX4ztEe3aMXN14GadXggrfW+0m3nUmT8rXNTprc62LR1v0RbB4L+0QWfbgSDRyeMdBrvg8KIKLb1VFVrgUecbYBtHTTsLZALnU7oOOARnfGdtHC0aG3FAGxg";
     private final String TFOD_MODEL_ASSET = "UltimateGoal.tflite";
     private final String QUAD_LABEL = "Quad";
@@ -64,7 +61,7 @@ public class AutonDraft extends LinearOpMode {
             int[] directions = driveToTargetZone(zone);
             parkOnLine(directions);
 
-            tfod.shutdown();
+            bot.shutDownCV();
         }
     }
 
@@ -98,12 +95,12 @@ public class AutonDraft extends LinearOpMode {
 
         // Determine target zone based on starter stack
         switch(stackedRings){
-            case 0:
-                return 'a';
             case 1:
                 return 'b';
             case 4:
                 return 'c';
+            default: // Equivalent to case 0
+                return 'a';
         }
     }
 
@@ -158,28 +155,6 @@ public class AutonDraft extends LinearOpMode {
         bot.drive(LOW_POWER, TILE_SIZE*driveBackward, Robot.Direction.BACKWARD);
 
         bot.stop();
-    }
-
-    private void initVuforia(){
-        VuforiaLocalizer.Parameters params = new VuforiaLocalizer.Parameters();
-
-        params.vuforiaLicenseKey = VUFORIA_KEY;
-        params.cameraDirection = VuforiaLocalizer.CameraDirection.BACK;
-
-        vuforia = ClassFactory.getInstance().createVuforia(params);
-    }
-
-    private void initTfod(){
-        int tfodMonitorViewID = hardwareMap.appContext.getResources().getIdentifier(
-                "tfodMonitorViewId",
-                "id",
-                hardwareMap.appContext.getPackageName()
-        );
-
-        TFObjectDetector.Parameters params = new TFObjectDetector.Parameters(tfodMonitorViewID);
-
-        tfod = ClassFactory.getInstance().createTFObjectDetector(params, vuforia);
-        tfod.loadModelFromAsset(TFOD_MODEL_ASSET, RING_LABEL);
     }
 
 }

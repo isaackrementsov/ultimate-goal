@@ -799,6 +799,7 @@ public class Robot {
         );
 
         TFObjectDetector.Parameters params = new TFObjectDetector.Parameters(tfodMonitorViewID);
+        params.minResultConfidence = 0.8f;
 
         tfod = ClassFactory.getInstance().createTFObjectDetector(params, vuforia);
 
@@ -808,13 +809,19 @@ public class Robot {
     // Initialize TensorFlow and Vuforia
     public void initCV(String vuforiaKey, VuforiaLocalizer.CameraDirection camera, String tfodModelAsset, String[] labels){
         initVuforia(vuforiaKey, camera);
+        initTfod(tfodModelAsset, labels);
 
-        if(ClassFactory.getInstance().canCreateTFObjectDetector()){
-            initTfod(tfodModelAsset, labels);
+        if(tfod != null){
             isCVReady = true;
             tfod.activate();
         }else{
             telemetry.addData("Error:", "This device is not compatible with TFOD");
+        }
+    }
+
+    public void shutDownCV(){
+        if(isCVReady){
+            tfod.shutdown();
         }
     }
 
