@@ -161,6 +161,21 @@ public class Robot {
         addDrivetrain(motors, new double[]{1,1,1,1}, new double[]{0,0,0,0}, 1, reverseLeft);
     }
 
+    // Set every motor to work in reverse (makes driving backwards easier if necessary)
+    public void reverseDrivetrain(){
+        for(String motor : drivetrain){
+            DcMotor dcMotor = dcMotors.get(motor);
+            DcMotorSimple.Direction direction = dcMotor.getDirection();
+            DcMotorSimple.Direction newDirection = DcMotorSimple.Direction.REVERSE;
+
+            if(direction.equals(DcMotorSimple.Direction.REVERSE)){
+                newDirection = DcMotorSimple.Direction.FORWARD;
+            }
+
+            dcMotor.setDirection(newDirection);
+        }
+    }
+
     // Use the encoders to drive the bot a set distance in a set direction
     public void drive(double power, double distanceCM, Direction direction){
         double[] powers = new double[4];
@@ -434,13 +449,22 @@ public class Robot {
     // Add a simple DcMotor with no extra info
     public void addDcMotor(String motor, boolean brake){ addDcMotor(motor, 0, 0, brake); }
 
+    public void addDcMotor(String motor, double circumference, double encoderTicks, boolean brake){
+        addDcMotor(motor, circumference, encoderTicks, brake, false);
+    }
+
     // Add a DcMotor with the info needed to use encoder positioning
     // If this is not a wheel, circumference is the distance it moves some part of the robot per revolution
-    public void addDcMotor(String motor, double circumference, double encoderTicks, boolean brake){
+    public void addDcMotor(String motor, double circumference, double encoderTicks, boolean brake, boolean reset){
         dcMotors.put(motor, hardwareMap.dcMotor.get(motor));
         dcMotorInfo.put(motor,  new Double[]{circumference, encoderTicks});
 
-        dcMotors.get(motor).setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        if(brake) dcMotors.get(motor).setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        if(reset){
+            dcMotors.get(motor).setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            dcMotors.get(motor).setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        }
     }
 
     // Batch add DcMotors for ease of use
@@ -448,6 +472,24 @@ public class Robot {
         for(int i = 0; i < motors.length; i++){
             addDcMotor(motors[i], circumferences[i], encoderTicks[i], brake);
         }
+    }
+
+    private int getEncoderValue(String motor, double distance){
+        Double[] info = dcMotorInfo.get(motor);
+
+        double circumference = info[0];
+        double encoderTicks = info[1];
+
+        return (int) (encoderTicks * distance / circumference);
+    }
+
+    public double getMotorPosition(String motor){
+        Double[] info = dcMotorInfo.get(motor);
+
+        double circumference = info[0];
+        double encoderTicks = info[1];
+
+        return circumference * dcMotors.get(motor).getCurrentPosition() / encoderTicks;
     }
 
     // Move a DcMotor indefinitely with a set power
@@ -458,20 +500,33 @@ public class Robot {
     }
 
     // Move a DcMotor for a set distance, similar to the distance drive method
-    public void moveDcMotor(String motor, double distanceCM, double motorPower){
+    public void moveDcMotor(String motor, double distanceCM, double motorPower, boolean teleOp){
         Double[] info = dcMotorInfo.get(motor);
 
-        double circumference = info[0];
-        double encoderTicks = info[1];
-
         // The encoder code used here is the same as what is used in the distance drive method
-        int target = (int) (encoderTicks * distanceCM / circumference);
-
+        int target = getEncoderValue(motor, distanceCM);
         dcMotors.get(motor).setTargetPosition((motorPower < 0 ? -1 : 1) * target + dcMotors.get(motor).getCurrentPosition());
         dcMotors.get(motor).setMode(DcMotor.RunMode.RUN_TO_POSITION);
         dcMotors.get(motor).setPower(motorPower);
 
-        while(dcMotors.get(motor).isBusy());
+        // This code should be blocking in a LinearOpMode
+        if(!teleOp){
+            while(dcMotors.get(motor).isBusy());
+        }
+    }
+
+
+    // Move between two encoder positions
+    public void moveWithEncodedLimit(String motor, double limitLower, double limitUpper, double motorPower){
+        double currentPosition = getMotorPosition(motor);
+        telemetry.addData("Current position:", currentPosition);
+        telemetry.addData("Can move?", currentPosition > limitLower && currentPosition < limitUpper);
+
+        if(currentPosition > limitLower && currentPosition < limitUpper){
+            moveDcMotor(motor, motorPower);
+        }else{
+            moveDcMotor(motor, 0);
+        }
     }
 
     // Add a motor to be stopped with limit switches on either end of its range of motion
@@ -727,6 +782,7 @@ public class Robot {
         double rotationAngle = angleLimits[0];
         double minAngle = angleLimits[1];
         double maxAngle = angleLimits[2];
+
         if(angle >= minAngle && angle <= maxAngle){
             servos.get(motor).setPosition(angle/rotationAngle);
 
@@ -830,11 +886,15 @@ public class Robot {
             Recognition matched = null;
             List<Recognition> recognitions = tfod.getUpdatedRecognitions();
 
-            for(Recognition recognition : recognitions){
-                if(recognition.getLabel().equals(label)){
-                    matched = recognition;
-                    break;
+            if(recognitions != null){
+                for(Recognition recognition : recognitions){
+                    if(recognition.getLabel().equals(label)){
+                        matched = recognition;
+                        break;
+                    }
                 }
+            }else{
+                matched = null;
             }
 
             return matched;
@@ -869,7 +929,11 @@ public class Robot {
         double error = getError(targetLabel, centerPoint);
 
         while(Math.abs(error) > threshold){
+            telemetry.addData("error:", error);
+            telemetry.update();
+
             drive(1, p*error, 0, 0);
+            stop();
             error = getError(targetLabel, centerPoint);
         }
 

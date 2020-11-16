@@ -39,6 +39,8 @@ public class AutonDraft extends LinearOpMode {
                 1,
                 true
         );
+        // Reverse the drivetrain so that the camera can be mounted on the back without changing driving plans
+        bot.reverseDrivetrain();
 
         bot.initCV(
             VUFORIA_KEY,
@@ -99,7 +101,7 @@ public class AutonDraft extends LinearOpMode {
                 return 'b';
             case 4:
                 return 'c';
-            default: // Equivalent to case 0
+            default: // Equivalent to `case 0:`
                 return 'a';
         }
     }
@@ -108,11 +110,13 @@ public class AutonDraft extends LinearOpMode {
         int driveBackward = 0;
         int driveLeft = 0;
 
+        // Shift outward from the starter stack to avoid hitting it
+        bot.drive(LOW_POWER, TILE_SIZE*0.5, Robot.Direction.LEFT);
         bot.drive(LOW_POWER, TILE_SIZE*3.5, Robot.Direction.FORWARD);
 
         switch(zone){
             case 'a':
-                bot.drive(LOW_POWER, TILE_SIZE*1.5, Robot.Direction.RIGHT);
+                bot.drive(LOW_POWER, TILE_SIZE*2, Robot.Direction.RIGHT);
 
                 driveBackward = 0;
                 driveLeft = 3;
@@ -120,7 +124,7 @@ public class AutonDraft extends LinearOpMode {
                 break;
             case 'b':
                 bot.drive(LOW_POWER, TILE_SIZE, Robot.Direction.FORWARD);
-                bot.drive(LOW_POWER, TILE_SIZE*0.5, Robot.Direction.RIGHT);
+                bot.drive(LOW_POWER, TILE_SIZE, Robot.Direction.RIGHT);
 
                 driveBackward = 1;
                 driveLeft = 2;
@@ -128,7 +132,7 @@ public class AutonDraft extends LinearOpMode {
                 break;
             case 'c':
                 bot.drive(LOW_POWER, TILE_SIZE*2, Robot.Direction.FORWARD);
-                bot.drive(LOW_POWER, TILE_SIZE*1.5, Robot.Direction.RIGHT);
+                bot.drive(LOW_POWER, TILE_SIZE*2, Robot.Direction.RIGHT);
 
                 driveBackward = 2;
                 driveLeft = 3;
