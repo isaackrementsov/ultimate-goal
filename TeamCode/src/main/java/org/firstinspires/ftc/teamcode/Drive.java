@@ -19,32 +19,30 @@ public class Drive extends OpMode {
     private final String QUAD_LABEL = "Quad";
     private final String SINGLE_LABEL = "Single";
 
+    private boolean readyToShoot = false;
+
     public void init(){
         this.bot = new Robot(hardwareMap, telemetry);
 
         bot.addDrivetrain(new String[]{"mRF", "mLF", "mRB", "mLB"}, true);
+
         bot.addDcMotor("intake", true);
         bot.addDcMotor("arm", 360, 288, true, true);
+        bot.addDcMotor("intakeWheels", false);
+        bot.addDcMotor("launcher", false);
 
         bot.addServo("flipper");
-
-        /*bot.initCV(
-            VUFORIA_KEY,
-            VuforiaLocalizer.CameraDirection.BACK,
-            TFOD_MODEL_ASSET,
-            new String[]{QUAD_LABEL, SINGLE_LABEL}
-        );*/
 
         power = 0.5;
     }
 
-    @Override
-    public void loop(){
+    private void loopGamepad1(){
         double leftX = gamepad1.left_stick_x;
         double rightX = gamepad1.right_stick_x;
         double rightY = -gamepad1.right_stick_y; // Reads negative from the controller
         double triggerRight = gamepad1.right_trigger;
         double triggerLeft = gamepad1.left_trigger;
+        boolean bumperRight = gamepad1.right_bumper;
         boolean x = gamepad1.x;
         boolean y = gamepad1.y;
         boolean a = gamepad1.a;
@@ -76,16 +74,8 @@ public class Drive extends OpMode {
 
         bot.moveDcMotor("intake", 2*intakePower);
 
-        // Auto-align when x is pressed
-        // TODO: Make auto-align method for TeleOp by removing loops
-        /*if(x){
-            try {
-                bot.autoAlign(SINGLE_LABEL, 0.5);
-            }catch(Robot.CVInitializationException e){
-                telemetry.addData("TensorFlow Error:", e);
-            }
-        }*/
-
+        // Power the Wobble Goal Arm
+        // TODO: Make this setVelocity not setPower!
         double armPower = 0;
         if(a){
             armPower = 0.5;
@@ -94,18 +84,40 @@ public class Drive extends OpMode {
         }
 
         // Move the arm between + or - 40 degrees
-        //bot.moveWithEncodedLimit("arm", -40, 40, armPower);
-        bot.moveDcMotor("arm", armPower);
+        bot.moveDcMotor("arm", 180, armPower, true);
 
-        if(y){
-            double position = bot.getServoPos("flipper");
-
-            if(position >= 59){
-                bot.rotateServo("flipper", 60, 0);
+        if(bumperRight){
+            if(readyToShoot){
+                bot.rotateServo("flipper", 180, 0);
             }else{
-                bot.rotateServo("flipper", 0, 0);
+                bot.rotateServo("flipper", 120, 0);
+            }
+
+            readyToShoot = !readyToShoot;
+        }
+
+        // Turn intake wheels on/off
+        if(x){
+            if(bot.getMotorPower("intakeWheels") == 0){
+                bot.moveDcMotor("intakeWheels", 1);
+            }else{
+                bot.moveDcMotor("intakeWheels", 0);
             }
         }
+
+        // Turn launcher flywheel on/off
+        if(y){
+            if(bot.getMotorPower("launcher") == 0){
+                bot.moveDcMotor("launcher", 1);
+            }else{
+                bot.moveDcMotor("launcher", 0);
+            }
+        }
+    }
+
+    @Override
+    public void loop(){
+        loopGamepad1();
     }
 
     @Override

@@ -492,6 +492,10 @@ public class Robot {
         return circumference * dcMotors.get(motor).getCurrentPosition() / encoderTicks;
     }
 
+    public double getMotorPower(String motor){
+        return dcMotors.get(motor).getPower();
+    }
+
     // Move a DcMotor indefinitely with a set power
     public void moveDcMotor(String motor, double motorPower){
         DcMotor motorToMove = dcMotors.get(motor);
