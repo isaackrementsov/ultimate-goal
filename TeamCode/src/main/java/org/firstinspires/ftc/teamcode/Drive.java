@@ -128,11 +128,4 @@ public class Drive extends OpMode {
             telemetry.addData("Failed to copy last gamepad!", e);
         }
     }
-
-    @Override
-    public void stop() {
-        // Shutdown TensorFlow
-        bot.shutDownCV();
-        super.stop();
-    }
 }
