@@ -325,19 +325,19 @@ public class Robot {
             switch(i){
                 case 0:
                     // For motor right front, +power=forward, +strafe=forward, +yaw=forward
-                    motorPower = power + strafe - yaw;
+                    motorPower = power - strafe - yaw;
                     break;
                 case 1:
                     // For motor left front, +power=forward, +strafe=reverse, +yaw=reverse
-                    motorPower = power - strafe + yaw;
+                    motorPower = power + strafe + yaw;
                     break;
                 case 2:
                     // For motor right back, +power=forward, +strafe=reverse, +yaw=forward
-                    motorPower = power - strafe - yaw;
+                    motorPower = power + strafe - yaw;
                     break;
                 case 3:
                     // For motor left back, +power=forward, +strafe=forward, +yaw=reverse
-                    motorPower = power + strafe + yaw;
+                    motorPower = power - strafe + yaw;
             }
 
             // Mutliply power by the speed setting for the motor
@@ -519,6 +519,9 @@ public class Robot {
         }
     }
 
+    public void runAtConstantVelocity(String motor){
+        dcMotors.get(motor).setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    }
 
     // Move between two encoder positions
     public void moveWithEncodedLimit(String motor, double limitLower, double limitUpper, double motorPower){

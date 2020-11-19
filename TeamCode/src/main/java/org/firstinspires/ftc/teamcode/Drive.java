@@ -2,7 +2,9 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.exception.RobotCoreException;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
@@ -19,6 +21,8 @@ public class Drive extends OpMode {
     private final String QUAD_LABEL = "Quad";
     private final String SINGLE_LABEL = "Single";
 
+    private Gamepad lastGamepad1 = new Gamepad();
+
     private boolean readyToShoot = false;
 
     public void init(){
@@ -27,11 +31,14 @@ public class Drive extends OpMode {
         bot.addDrivetrain(new String[]{"mRF", "mLF", "mRB", "mLB"}, true);
 
         bot.addDcMotor("intake", true);
-        bot.addDcMotor("arm", 360, 288, true, true);
         bot.addDcMotor("intakeWheels", false);
         bot.addDcMotor("launcher", false);
 
+        bot.addDcMotor("arm", 360, 288, true, true);
+        bot.runAtConstantVelocity("arm");
+
         bot.addServo("flipper");
+        bot.rotateServo("flipper", 180, 0);
 
         power = 0.5;
     }
@@ -42,11 +49,10 @@ public class Drive extends OpMode {
         double rightY = -gamepad1.right_stick_y; // Reads negative from the controller
         double triggerRight = gamepad1.right_trigger;
         double triggerLeft = gamepad1.left_trigger;
-        boolean bumperRight = gamepad1.right_bumper;
-        boolean x = gamepad1.x;
-        boolean y = gamepad1.y;
-        boolean a = gamepad1.a;
-        boolean b = gamepad1.b;
+        boolean xReleased = !gamepad1.x && lastGamepad1.x;
+        boolean yReleased = !gamepad1.y && lastGamepad1.y;
+        boolean aReleased = !gamepad1.a && lastGamepad1.a;
+        boolean bReleased = !gamepad1.b && lastGamepad1.b;
 
         if (gamepad1.dpad_up) power = 0.9;
         if (gamepad1.dpad_right) power = 0.5;
@@ -77,27 +83,24 @@ public class Drive extends OpMode {
         // Power the Wobble Goal Arm
         // TODO: Make this setVelocity not setPower!
         double armPower = 0;
-        if(a){
-            armPower = 0.5;
-        }else if(b){
-            armPower = -0.3;
+        if(bReleased){
+            if(bot.getMotorPosition("arm") <= 90){
+                armPower = 0.5;
+            }else{
+                armPower = -0.3;
+            }
         }
 
-        // Move the arm between + or - 40 degrees
-        bot.moveDcMotor("arm", 180, armPower, true);
+        // Move the arm between 0 and 180 degrees at 90 degree increments
+        bot.moveDcMotor("arm", 90, armPower, true);
 
-        if(bumperRight){
-            if(readyToShoot){
-                bot.rotateServo("flipper", 180, 0);
-            }else{
-                bot.rotateServo("flipper", 120, 0);
-            }
-
-            readyToShoot = !readyToShoot;
+        if(aReleased){
+            bot.rotateServo("flipper", 120, 1000);
+            bot.rotateServo("flipper", 180, 0);
         }
 
         // Turn intake wheels on/off
-        if(x){
+        if(xReleased){
             if(bot.getMotorPower("intakeWheels") == 0){
                 bot.moveDcMotor("intakeWheels", 1);
             }else{
@@ -106,7 +109,7 @@ public class Drive extends OpMode {
         }
 
         // Turn launcher flywheel on/off
-        if(y){
+        if(yReleased){
             if(bot.getMotorPower("launcher") == 0){
                 bot.moveDcMotor("launcher", 1);
             }else{
@@ -118,6 +121,12 @@ public class Drive extends OpMode {
     @Override
     public void loop(){
         loopGamepad1();
+
+        try{
+            gamepad1.copy(lastGamepad1);
+        }catch(RobotCoreException e){
+            telemetry.addData("Failed to copy last gamepad!", e);
+        }
     }
 
     @Override
