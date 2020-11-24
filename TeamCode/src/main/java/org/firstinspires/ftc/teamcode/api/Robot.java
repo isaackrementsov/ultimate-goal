@@ -18,6 +18,7 @@ https://www.notion.so/RoboHawks-Documentation-7f03a74bd3c747f7b37bca76e656741b
 
 package org.firstinspires.ftc.teamcode.api;
 
+import android.sax.StartElementListener;
 import android.text.method.Touch;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
@@ -26,6 +27,7 @@ import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
+import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.TouchSensor;
@@ -483,13 +485,26 @@ public class Robot {
         return (int) (encoderTicks * distance / circumference);
     }
 
+    private double encoderTicksToPosition(double positionTicks, double circumference, double encoderTicks){
+        return circumference * positionTicks / encoderTicks;
+    }
+
     public double getMotorPosition(String motor){
         Double[] info = dcMotorInfo.get(motor);
 
         double circumference = info[0];
         double encoderTicks = info[1];
 
-        return circumference * dcMotors.get(motor).getCurrentPosition() / encoderTicks;
+        return encoderTicksToPosition(dcMotors.get(motor).getCurrentPosition(), circumference, encoderTicks);
+    }
+
+    public double getTargetPosition(String motor){
+        Double[] info = dcMotorInfo.get(motor);
+
+        double circumference = info[0];
+        double encoderTicks = info[1];
+
+        return encoderTicksToPosition(dcMotors.get(motor).getTargetPosition(), circumference, encoderTicks);
     }
 
     public double getMotorPower(String motor){
@@ -511,6 +526,21 @@ public class Robot {
         int target = getEncoderValue(motor, distanceCM);
         dcMotors.get(motor).setTargetPosition((motorPower < 0 ? -1 : 1) * target + dcMotors.get(motor).getCurrentPosition());
         dcMotors.get(motor).setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        dcMotors.get(motor).setPower(motorPower);
+
+        // This code should be blocking in a LinearOpMode
+        if(!teleOp){
+            while(dcMotors.get(motor).isBusy());
+        }
+    }
+
+    // Simplify using the existing moveDcMotor method
+    public void moveToStaticPosition(String motor, double distanceCM, double motorPower, boolean teleOp){
+        Double[] info = dcMotorInfo.get(motor);
+
+        // The encoder code used here is the same as what is used in the distance drive method
+        int target = getEncoderValue(motor, distanceCM);
+        dcMotors.get(motor).setTargetPosition(target);
         dcMotors.get(motor).setPower(motorPower);
 
         // This code should be blocking in a LinearOpMode
@@ -985,6 +1015,40 @@ public class Robot {
         // Exception to explain CV is not initialized
         public CVInitializationException(){
             super("Please use the initCV method before invoking TensorFlow or Vuforia functions");
+        }
+    }
+
+    public static class ButtonState {
+        public boolean a = false;
+        public boolean b = false;
+        public boolean x = false;
+        public boolean y = false;
+
+        public void update(boolean aNew, boolean bNew, boolean xNew, boolean yNew){
+            a = aNew;
+            b = bNew;
+            x = xNew;
+            y = yNew;
+        }
+    }
+
+    public static class DpadState {
+        public boolean dpad_up = false;
+        public boolean dpad_down = false;
+
+        public void update(boolean dpad_upNew, boolean dpad_downNew){
+            dpad_up = dpad_upNew;
+            dpad_down = dpad_downNew;
+        }
+    }
+
+    public static class BumperState {
+        public boolean right_bumper = false;
+        public boolean left_bumper = false;
+
+        public void update(boolean bumper_rightNew, boolean bumper_leftNew) {
+            right_bumper = bumper_rightNew;
+            left_bumper = bumper_leftNew;
         }
     }
 }

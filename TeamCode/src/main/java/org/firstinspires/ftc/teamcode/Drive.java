@@ -21,9 +21,13 @@ public class Drive extends OpMode {
     private final String QUAD_LABEL = "Quad";
     private final String SINGLE_LABEL = "Single";
 
-    private Gamepad lastGamepad1 = new Gamepad();
+    // Using a custom state instead of saving entire gamepad1 (doing otherwise causes lag)
+    private Robot.ButtonState lastButtons1 = new Robot.ButtonState();
+    private Robot.DpadState lastDpads1 = new Robot.DpadState();
+    private Robot.BumperState lastBumpers1 = new Robot.BumperState();
 
-    private boolean readyToShoot = false;
+    private int[] armPositions = new int[]{-90, 0, 95};
+    private int currentPositionIndex = 1;
 
     public void init(){
         this.bot = new Robot(hardwareMap, telemetry);
@@ -32,10 +36,13 @@ public class Drive extends OpMode {
 
         bot.addDcMotor("intake", true);
         bot.addDcMotor("intakeWheels", false);
+
         bot.addDcMotor("launcher", false);
+        bot.runAtConstantVelocity("launcher");
 
         bot.addDcMotor("arm", 360, 288, true, true);
         bot.runAtConstantVelocity("arm");
+        bot.moveDcMotor("arm", 0, 0.5, true);
 
         bot.addServo("flipper");
         bot.rotateServo("flipper", 180, 0);
@@ -49,83 +56,114 @@ public class Drive extends OpMode {
         double rightY = -gamepad1.right_stick_y; // Reads negative from the controller
         double triggerRight = gamepad1.right_trigger;
         double triggerLeft = gamepad1.left_trigger;
-        boolean xReleased = !gamepad1.x && lastGamepad1.x;
-        boolean yReleased = !gamepad1.y && lastGamepad1.y;
-        boolean aReleased = !gamepad1.a && lastGamepad1.a;
-        boolean bReleased = !gamepad1.b && lastGamepad1.b;
 
-        if (gamepad1.dpad_up) power = 0.9;
-        if (gamepad1.dpad_right) power = 0.5;
-        if (gamepad1.dpad_left) power = 0.3;
-        if (gamepad1.dpad_down) power = 0.2;
+        boolean bumperRight = gamepad1.right_bumper;
+        boolean bumperLeft = gamepad1.left_bumper;
+        boolean dpadUp = gamepad1.dpad_up;
+        boolean dpadDown = gamepad1.dpad_down;
+        boolean a = gamepad1.a;
+        boolean b = gamepad1.b;
+        boolean x = gamepad1.x;
+        boolean y = gamepad1.y;
 
-        telemetry.addData("RightY", rightY);
-        telemetry.addData("RightX", rightX);
-        telemetry.addData("LeftX", leftX);
+        boolean bumperRightHit = gamepad1.right_bumper && !lastBumpers1.right_bumper;
+        boolean bumperLeftHit = gamepad1.left_bumper && !lastBumpers1.left_bumper;
+        boolean dpadUpHit = dpadUp && !lastDpads1.dpad_up;
+        boolean dpadDownHit = dpadDown && !lastDpads1.dpad_down;
+        boolean xHit = x && !lastButtons1.x;
+        boolean yHit = y && !lastButtons1.y;
+        boolean aHit = a && !lastButtons1.a;
+
+        // Use dpads to increment power
+        double increment = 0.05;
+        if(dpadUpHit){
+            if(power < 1 - increment) power += increment;
+        }else if(dpadDownHit){
+            if(power > increment) power -= increment;
+        }
+        telemetry.addData("Motor power:", power);
 
         // Drive the robot with joysticks if they are moved
-        if (Math.abs(leftX) > .1 || Math.abs(rightX) > .1 || Math.abs(rightY) > .1) {
+        if(Math.abs(leftX) > .1 || Math.abs(rightX) > .1 || Math.abs(rightY) > .1) {
             bot.drive(power, leftX, rightX, rightY);
-        } else {
+        }else{
             // If the joysticks are not pressed, do not move the bot
             bot.stop();
         }
 
+        // Reverse the drivetrain (for testing)
+        if(gamepad1.left_stick_button){
+            bot.reverseDrivetrain();
+        }
+
         double intakePower = 0;
         if(Math.abs(triggerRight) > 0.05) {
-            intakePower = triggerRight;
+            intakePower = -triggerRight;
         }else if(Math.abs(triggerLeft) > 0.05){
-            intakePower = -triggerLeft;
+            intakePower = triggerLeft;
         }
 
         bot.moveDcMotor("intake", 2*intakePower);
 
+
         // Power the Wobble Goal Arm
-        // TODO: Make this setVelocity not setPower!
-        double armPower = 0;
-        if(bReleased){
-            if(bot.getMotorPosition("arm") <= 90){
-                armPower = 0.5;
-            }else{
-                armPower = -0.3;
+        double maxSpeed = 0.9;
+        double armSpeed = 0;
+        if(bumperLeftHit || bumperRightHit){
+            if(bumperLeftHit){
+                if(currentPositionIndex < armPositions.length - 1) currentPositionIndex++;
+            }else if(bumperRightHit){
+                if(currentPositionIndex > 0) currentPositionIndex--;
             }
+
+            bot.moveToStaticPosition("arm", armPositions[currentPositionIndex], maxSpeed, true);
+        }else{
+            double error = bot.getTargetPosition("arm") - bot.getMotorPosition("arm");
+
+            telemetry.addData("Error:", error);
+            telemetry.addData("Speed", Math.signum(error) * maxSpeed);
+            bot.moveDcMotor("arm", Math.signum(error) * maxSpeed);
         }
 
         // Move the arm between 0 and 180 degrees at 90 degree increments
-        bot.moveDcMotor("arm", 90, armPower, true);
 
-        if(aReleased){
-            bot.rotateServo("flipper", 120, 1000);
+        if(aHit){
+            bot.rotateServo("flipper", 120, 250);
             bot.rotateServo("flipper", 180, 0);
         }
 
         // Turn intake wheels on/off
-        if(xReleased){
+        if(xHit){
             if(bot.getMotorPower("intakeWheels") == 0){
                 bot.moveDcMotor("intakeWheels", 1);
             }else{
                 bot.moveDcMotor("intakeWheels", 0);
             }
+        }else if(b){
+            bot.moveDcMotor("intakeWheels", -1);
+        }else if(bot.getMotorPower("intakeWheels") < 0){ //Reverse mode should only run when b is held
+            bot.moveDcMotor("intakeWheels", 0);
         }
 
         // Turn launcher flywheel on/off
-        if(yReleased){
+        if(yHit){
             if(bot.getMotorPower("launcher") == 0){
-                bot.moveDcMotor("launcher", 1);
+                bot.moveDcMotor("launcher", 0.8);
             }else{
                 bot.moveDcMotor("launcher", 0);
             }
         }
+
+        // Save button states
+        lastButtons1.update(a, b, x, y);
+        lastDpads1.update(dpadUp, dpadDown);
+        lastBumpers1.update(bumperRight, bumperLeft);
     }
 
     @Override
     public void loop(){
         loopGamepad1();
-
-        try{
-            gamepad1.copy(lastGamepad1);
-        }catch(RobotCoreException e){
-            telemetry.addData("Failed to copy last gamepad!", e);
-        }
     }
+
+    private boolean xyabOn(Gamepad gamepad){ return gamepad.a || gamepad.b || gamepad.x || gamepad.y; }
 }
