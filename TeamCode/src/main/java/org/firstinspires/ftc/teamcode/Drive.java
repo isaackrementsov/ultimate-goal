@@ -26,7 +26,7 @@ public class Drive extends OpMode {
     private Robot.DpadState lastDpads1 = new Robot.DpadState();
     private Robot.BumperState lastBumpers1 = new Robot.BumperState();
 
-    private int[] armPositions = new int[]{-90, 0, 95};
+    private int[] armPositions = new int[]{-95, 10, 90};
     private int currentPositionIndex = 1;
 
     public void init(){
@@ -41,8 +41,7 @@ public class Drive extends OpMode {
         bot.runAtConstantVelocity("launcher");
 
         bot.addDcMotor("arm", 360, 288, true, true);
-        bot.runAtConstantVelocity("arm");
-        bot.moveDcMotor("arm", 0, 0.5, true);
+        bot.moveToStaticPosition("arm", 0, 0, true);
 
         bot.addServo("flipper");
         bot.rotateServo("flipper", 180, 0);
@@ -116,13 +115,16 @@ public class Drive extends OpMode {
                 if(currentPositionIndex > 0) currentPositionIndex--;
             }
 
-            bot.moveToStaticPosition("arm", armPositions[currentPositionIndex], maxSpeed, true);
+            bot.moveDcMotor("arm", armPositions[currentPositionIndex] - bot.getMotorPosition("arm"), maxSpeed, true);
         }else{
             double error = bot.getTargetPosition("arm") - bot.getMotorPosition("arm");
+            double threshold = 5;
+
+            armSpeed = bot.getControlledSpeed(maxSpeed, threshold, error);
 
             telemetry.addData("Error:", error);
-            telemetry.addData("Speed", Math.signum(error) * maxSpeed);
-            bot.moveDcMotor("arm", Math.signum(error) * maxSpeed);
+            telemetry.addData("Speed", armSpeed);
+            bot.moveDcMotor("arm", armSpeed);
         }
 
         // Move the arm between 0 and 180 degrees at 90 degree increments
@@ -133,15 +135,16 @@ public class Drive extends OpMode {
         }
 
         // Turn intake wheels on/off
+        double intakeWheelPower = bot.getMotorPower("intakeWheels");
         if(xHit){
-            if(bot.getMotorPower("intakeWheels") == 0){
+            if(intakeWheelPower == 0){
                 bot.moveDcMotor("intakeWheels", 1);
             }else{
                 bot.moveDcMotor("intakeWheels", 0);
             }
-        }else if(b){
+        }else if(b && intakeWheelPower <= 0){
             bot.moveDcMotor("intakeWheels", -1);
-        }else if(bot.getMotorPower("intakeWheels") < 0){ //Reverse mode should only run when b is held
+        }else if(intakeWheelPower < 0){ //Reverse mode should only run when b is held
             bot.moveDcMotor("intakeWheels", 0);
         }
 

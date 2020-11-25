@@ -24,9 +24,9 @@ public class AutonDraft extends LinearOpMode {
     private final String QUAD_LABEL = "Quad";
     private final String SINGLE_LABEL = "Single";
 
-    private final double TILE_SIZE = 10.96; //60.96
+    private final double TILE_SIZE = 60.96;
 
-    private double LOW_POWER = 0.2;
+    private double LOW_POWER = 0.5;
     private double HIGH_POWER = 1;
 
     @Override
@@ -41,6 +41,15 @@ public class AutonDraft extends LinearOpMode {
         );
         // Reverse the drivetrain so that the camera can be mounted on the back without changing driving plans
         bot.reverseDrivetrain();
+        // Register the Wobble Arm
+        bot.addDcMotor("arm", 360, 288, true, true);
+        bot.moveDcMotor("arm", 0);
+
+        bot.addDcMotor("launcher", false);
+        bot.runAtConstantVelocity("launcher");
+
+        bot.addServo("flipper");
+        bot.rotateServo("flipper", 180, 0);
 
         bot.initCV(
             VUFORIA_KEY,
@@ -60,8 +69,11 @@ public class AutonDraft extends LinearOpMode {
             telemetry.update();
 
             // Park the robot on the launch line based on where it is after driving to target zone
-            int[] directions = driveToTargetZone(zone);
-            parkOnLine(directions);
+            double[] directions = driveToTargetZone(zone);
+            goBehindLine(directions);
+
+            // Shoot 3 rings
+            shoot();
 
             bot.shutDownCV();
         }
@@ -106,54 +118,56 @@ public class AutonDraft extends LinearOpMode {
         }
     }
 
-    private int[] driveToTargetZone(char zone){
-        int driveBackward = 0;
-        int driveLeft = 0;
+    private double[] driveToTargetZone(char zone){
+        double driveBackward = 0;
+        double driveLeft = 0;
 
         // Shift outward from the starter stack to avoid hitting it
         bot.drive(LOW_POWER, TILE_SIZE*0.5, Robot.Direction.LEFT);
-        bot.drive(LOW_POWER, TILE_SIZE*3.5, Robot.Direction.FORWARD);
+        bot.drive(LOW_POWER, TILE_SIZE*3, Robot.Direction.FORWARD);
 
         switch(zone){
             case 'a':
-                bot.drive(LOW_POWER, TILE_SIZE*2, Robot.Direction.RIGHT);
-
                 driveBackward = 0;
-                driveLeft = 3;
+                driveLeft = 1.5;
+
+                bot.drive(LOW_POWER, TILE_SIZE*driveLeft, Robot.Direction.RIGHT);
 
                 break;
             case 'b':
-                bot.drive(LOW_POWER, TILE_SIZE, Robot.Direction.FORWARD);
-                bot.drive(LOW_POWER, TILE_SIZE, Robot.Direction.RIGHT);
-
                 driveBackward = 1;
-                driveLeft = 2;
+                driveLeft = 0.5;
+
+                bot.drive(LOW_POWER, driveBackward*TILE_SIZE, Robot.Direction.FORWARD);
+                bot.drive(LOW_POWER, driveLeft*TILE_SIZE, Robot.Direction.RIGHT);
 
                 break;
             case 'c':
-                bot.drive(LOW_POWER, TILE_SIZE*2, Robot.Direction.FORWARD);
-                bot.drive(LOW_POWER, TILE_SIZE*2, Robot.Direction.RIGHT);
+                driveBackward = 1.65;
+                driveLeft = 1.5;
 
-                driveBackward = 2;
-                driveLeft = 3;
+                bot.drive(LOW_POWER, driveBackward*TILE_SIZE, Robot.Direction.FORWARD);
+                bot.drive(LOW_POWER, driveLeft*TILE_SIZE, Robot.Direction.RIGHT);
 
                 break;
         }
 
         dropWobbleGoal();
 
-        return new int[]{driveBackward, driveLeft};
+        return new double[]{driveBackward + 1 + 0.2, driveLeft};
     }
 
     private void dropWobbleGoal(){
         bot.stop();
+        bot.moveDcMotor("arm", -125, 0.7, false);
+        bot.drive(LOW_POWER/2, 0.2*TILE_SIZE, Robot.Direction.FORWARD);
         telemetry.addData("Dropped Wobble Goal!", "");
         telemetry.update();
     }
 
-    private void parkOnLine(int[] directions){
-        int driveBackward = directions[0];
-        int driveLeft = directions[1];
+    private void goBehindLine(double[] directions){
+        double driveBackward = directions[0];
+        double driveLeft = directions[1];
 
         bot.drive(LOW_POWER, TILE_SIZE*driveLeft, Robot.Direction.LEFT);
         bot.drive(LOW_POWER, TILE_SIZE*driveBackward, Robot.Direction.BACKWARD);
@@ -161,4 +175,16 @@ public class AutonDraft extends LinearOpMode {
         bot.stop();
     }
 
+    private void shoot(){
+        bot.moveDcMotor("launcher", 0.8);
+        bot.waitMillis(1000);
+
+        for(int i = 0; i < 3; i++){
+            bot.rotateServo("flipper", 120, 250);
+            bot.rotateServo("flipper", 180, 500);
+        }
+
+        bot.moveDcMotor("launcher", 0);
+        bot.drive(LOW_POWER, TILE_SIZE, Robot.Direction.FORWARD);
+    }
 }

@@ -534,6 +534,16 @@ public class Robot {
         }
     }
 
+    public double getControlledSpeed(double maxSpeed, double threshold, double error){
+        double speed = Math.signum(error)*maxSpeed;
+
+        if(Math.abs(error) < 2*threshold){
+            speed *= error / (2*threshold);
+        }
+
+        return speed;
+    }
+
     // Simplify using the existing moveDcMotor method
     public void moveToStaticPosition(String motor, double distanceCM, double motorPower, boolean teleOp){
         Double[] info = dcMotorInfo.get(motor);
@@ -543,9 +553,16 @@ public class Robot {
         dcMotors.get(motor).setTargetPosition(target);
         dcMotors.get(motor).setPower(motorPower);
 
-        // This code should be blocking in a LinearOpMode
         if(!teleOp){
-            while(dcMotors.get(motor).isBusy());
+            double error = getTargetPosition(motor) - getMotorPosition(motor);
+            double threshold = 1;
+
+            while(Math.abs(error) > threshold){
+                dcMotors.get(motor).setPower(getControlledSpeed(motorPower, threshold, error));
+                error = getTargetPosition(motor) - getMotorPosition(motor);
+            }
+
+            dcMotors.get(motor).setPower(0);
         }
     }
 
@@ -838,7 +855,7 @@ public class Robot {
         }
     }
 
-    private void waitMillis(int millis) {
+    public void waitMillis(int millis) {
         try {
             Thread.sleep(millis);
         } catch(InterruptedException e) { }
