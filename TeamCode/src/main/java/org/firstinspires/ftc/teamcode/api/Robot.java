@@ -1052,10 +1052,14 @@ public class Robot {
     public static class DpadState {
         public boolean dpad_up = false;
         public boolean dpad_down = false;
+        public boolean dpad_right = false;
+        public boolean dpad_left = false;
 
-        public void update(boolean dpad_upNew, boolean dpad_downNew){
+        public void update(boolean dpad_upNew, boolean dpad_downNew, boolean dpad_rightNew, boolean dpad_leftNew){
             dpad_up = dpad_upNew;
             dpad_down = dpad_downNew;
+            dpad_right = dpad_rightNew;
+            dpad_left = dpad_leftNew;
         }
     }
 

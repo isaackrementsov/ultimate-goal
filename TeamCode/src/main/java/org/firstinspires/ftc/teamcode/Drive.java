@@ -14,7 +14,9 @@ import org.firstinspires.ftc.teamcode.api.Robot;
 public class Drive extends OpMode {
 
     private Robot bot;
-    private double power;
+
+    private double power = 0.5;
+    private double launcherSpeed = 0.8;
 
     private final String VUFORIA_KEY = "AY3aN3z/////AAABmUIe2Kd1wEt0nkr2MAal4OQiiEFWa3aLCHRnFBO1wd2HDT+GFXOTpcrhqEiZumOHpODdyVc55cYOiTSxpPrN+zfw7ZYB8X5z3gRLRIhPj4BJLD0/vPTKil7rDPSluUddISeCHL1HzPdIfiZiG/HQ89vhBdLfrWpngKLF4tH4FB4YWdKZu5J9EBtVTlXqR1OUXVTM3p9DepM9KukrVxMESF/ve+RYix7UXMO5qbljnc/LjQdplFO8oX4ztEe3aMXN14GadXggrfW+0m3nUmT8rXNTprc62LR1v0RbB4L+0QWfbgSDRyeMdBrvg8KIKLb1VFVrgUecbYBtHTTsLZALnU7oOOARnfGdtHC0aG3FAGxg";
     private final String TFOD_MODEL_ASSET = "UltimateGoal.tflite";
@@ -26,7 +28,7 @@ public class Drive extends OpMode {
     private Robot.DpadState lastDpads1 = new Robot.DpadState();
     private Robot.BumperState lastBumpers1 = new Robot.BumperState();
 
-    private int[] armPositions = new int[]{-95, 10, 90};
+    private int[] armPositions = new int[]{-95, 0, 45};
     private int currentPositionIndex = 1;
 
     public void init(){
@@ -45,8 +47,6 @@ public class Drive extends OpMode {
 
         bot.addServo("flipper");
         bot.rotateServo("flipper", 180, 0);
-
-        power = 0.5;
     }
 
     private void loopGamepad1(){
@@ -60,6 +60,8 @@ public class Drive extends OpMode {
         boolean bumperLeft = gamepad1.left_bumper;
         boolean dpadUp = gamepad1.dpad_up;
         boolean dpadDown = gamepad1.dpad_down;
+        boolean dpadRight = gamepad1.dpad_right;
+        boolean dpadLeft = gamepad1.dpad_left;
         boolean a = gamepad1.a;
         boolean b = gamepad1.b;
         boolean x = gamepad1.x;
@@ -69,6 +71,8 @@ public class Drive extends OpMode {
         boolean bumperLeftHit = gamepad1.left_bumper && !lastBumpers1.left_bumper;
         boolean dpadUpHit = dpadUp && !lastDpads1.dpad_up;
         boolean dpadDownHit = dpadDown && !lastDpads1.dpad_down;
+        boolean dpadRightHit = dpadRight && !lastDpads1.dpad_right;
+        boolean dpadLeftHit = dpadLeft && !lastDpads1.dpad_left;
         boolean xHit = x && !lastButtons1.x;
         boolean yHit = y && !lastButtons1.y;
         boolean aHit = a && !lastButtons1.a;
@@ -80,7 +84,7 @@ public class Drive extends OpMode {
         }else if(dpadDownHit){
             if(power > increment) power -= increment;
         }
-        telemetry.addData("Motor power:", power);
+        telemetry.addData("Drivetrain power", 100*power + "%");
 
         // Drive the robot with joysticks if they are moved
         if(Math.abs(leftX) > .1 || Math.abs(rightX) > .1 || Math.abs(rightY) > .1) {
@@ -107,7 +111,6 @@ public class Drive extends OpMode {
 
         // Power the Wobble Goal Arm
         double maxSpeed = 0.9;
-        double armSpeed = 0;
         if(bumperLeftHit || bumperRightHit){
             if(bumperLeftHit){
                 if(currentPositionIndex < armPositions.length - 1) currentPositionIndex++;
@@ -120,11 +123,7 @@ public class Drive extends OpMode {
             double error = bot.getTargetPosition("arm") - bot.getMotorPosition("arm");
             double threshold = 5;
 
-            armSpeed = bot.getControlledSpeed(maxSpeed, threshold, error);
-
-            telemetry.addData("Error:", error);
-            telemetry.addData("Speed", armSpeed);
-            bot.moveDcMotor("arm", armSpeed);
+            bot.moveDcMotor("arm", bot.getControlledSpeed(maxSpeed, threshold, error));
         }
 
         // Move the arm between 0 and 180 degrees at 90 degree increments
@@ -151,20 +150,32 @@ public class Drive extends OpMode {
         // Turn launcher flywheel on/off
         if(yHit){
             if(bot.getMotorPower("launcher") == 0){
-                bot.moveDcMotor("launcher", 0.8);
+                bot.moveDcMotor("launcher", launcherSpeed);
             }else{
                 bot.moveDcMotor("launcher", 0);
             }
         }
+        // Change launcher speed
+        double speedIncrement = 0.05;
+        if(dpadRightHit){
+            if(launcherSpeed < 1 - speedIncrement) launcherSpeed += speedIncrement;
+        }else if(dpadLeftHit){
+            if(launcherSpeed > speedIncrement) launcherSpeed -= speedIncrement;
+        }
+        if((dpadRightHit || dpadLeftHit) && bot.getMotorPower("launcher") > 0){
+            bot.moveDcMotor("launcher", launcherSpeed);
+        }
+        telemetry.addData("Launcher speed", 100*launcherSpeed + "%");
 
         // Save button states
         lastButtons1.update(a, b, x, y);
-        lastDpads1.update(dpadUp, dpadDown);
+        lastDpads1.update(dpadUp, dpadDown, dpadRight, dpadLeft);
         lastBumpers1.update(bumperRight, bumperLeft);
     }
 
     @Override
     public void loop(){
+
         loopGamepad1();
     }
 
