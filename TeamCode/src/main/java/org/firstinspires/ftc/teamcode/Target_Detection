@@ -7,6 +7,7 @@ import org.firstinspires.ftc.teamcode.api.Robot;
 
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
@@ -32,7 +33,7 @@ public class Target_Detection() {
 
 
 
-    public int UnFunny(){
+    public int UnFunny() {
         Vuforia.enableConvertFrameToFormat(565);
         this.Vuforia.setFrameQueueCapacity(1);
         CloseableFrame frame = null;
@@ -41,43 +42,49 @@ public class Target_Detection() {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        Vuforia.Image images1 = frame.getImage(0);
+        Image images1 = frame.getImage(0);
         List<Integer> iiMage = new ArrayList<Integer>();
         List<Integer> Whut = new ArrayList<Integer>();
-        byte[] pixals = images1.Pixels;
-        image_length = Vuforia.images1.getwidth();
-        for (int yyay = 0; image_length*Vuforia.images1.getheight() <= yyay; yyay += 1 ){
-            if (pixals[yyay] < 0b11111100)
-            iiMage.add(1);
+        ByteBuffer pixals1 = images1.getPixels();
+        byte[] pixals = new byte[images1.getWidth()*images1.getHeight()];
+        byte whyyyy;
+        for (int whyy = 0; whyy >= images1.getWidth()*images1.getHeight(); whyy += 1){
+        whyyyy = pixals1.get();
+        pixals[whyy] = whyyyy;
         }
-            if (pixals[yyay] >= 0b11111100){
-                iiMage.add(0);
+        image_length = images1.getWidth();
+        int yyay;
+        for (yyay = 0; image_length * images1.getHeight() <= yyay; yyay += 1) {
+            if (pixals[yyay] < 0b11111100)
+                iiMage.add(1);
+        }
+        if (pixals[yyay] >= 0b11111100) {
+            iiMage.add(0);
         }
         List<Integer> Whut_Whut = new ArrayList<Integer>();
         Boolean yeay = false;
-        image_length = Vuforia.images1.getwidth();
-        for (int eee = 0; eee <= image_length; eee += 1 ) {
+        for (int eee = 0; eee <= image_length; eee += 1) {
             if (iiMage.get(eee) == 1 & yeay == true) {
                 Whut.add(1);
                 Whut_Whut.add(eee);
                 yeay = true;
             }
-            if (iiMage.get(eee) != 1 & yeay == true){
+            if (iiMage.get(eee) != 1 & yeay == true) {
                 break;
             }
         }
         int average = 0;
-        for (int ree = 0; ree <= Whut_Whut.size(); ree += 1 ){
+        for (int ree = 0; ree <= Whut_Whut.size(); ree += 1) {
             average = average + Whut_Whut.get(ree);
         }
-        average = average/Whut_Whut.size();
-        if ( average > Math.round(image_length/2)){
-            average = (average-Math.round(image_length/2));
+        average = average / Whut_Whut.size();
+        if (average > Math.round(image_length / 2)) {
+            average = (average - Math.round(image_length / 2));
         }
-        if (average < Math.round(image_length/2)){
-            average = (average-Math.round(image_length/2))
+        if (average < Math.round(image_length / 2)) {
+            average = (average - Math.round(image_length / 2));
         }
-        if (average == Math.round(image_length/2)){
+        if (average == Math.round(image_length / 2)) {
             average = average;
         }
         return (average);
