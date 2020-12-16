@@ -49,7 +49,7 @@ public class Target_Detection() {
         byte[] pixals = new byte[images1.getWidth()*images1.getHeight()];
         byte whyyyy;
         for (int whyy = 0; whyy >= images1.getWidth()*images1.getHeight(); whyy += 1){
-        whyyyy = pixals1.get();
+        whyyyy = pixals1.get(whyy);
         pixals[whyy] = whyyyy;
         }
         image_length = images1.getWidth();
