@@ -1,0 +1,93 @@
+package org.firstinspires.ftc.teamcode;
+
+
+import com.vuforia.Image;
+
+import org.firstinspires.ftc.teamcode.api.Robot;
+
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
+
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Hashtable;
+import java.util.List;
+import java.lang.Math;
+import static org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer.*;
+import org.firstinspires.ftc.robotcore.external.ClassFactory;
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
+import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
+import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
+import org.firstinspires.ftc.teamcode.api.Robot;
+
+public class Target_Detection() {
+
+    public Robot bot;
+    public Image images1;
+    public int image_length;// Do you think I know?
+    public final String VUFORIA_KEY = "AY3aN3z/////AAABmUIe2Kd1wEt0nkr2MAal4OQiiEFWa3aLCHRnFBO1wd2HDT+GFXOTpcrhqEiZumOHpODdyVc55cYOiTSxpPrN+zfw7ZYB8X5z3gRLRIhPj4BJLD0/vPTKil7rDPSluUddISeCHL1HzPdIfiZiG/HQ89vhBdLfrWpngKLF4tH4FB4YWdKZu5J9EBtVTlXqR1OUXVTM3p9DepM9KukrVxMESF/ve+RYix7UXMO5qbljnc/LjQdplFO8oX4ztEe3aMXN14GadXggrfW+0m3nUmT8rXNTprc62LR1v0RbB4L+0QWfbgSDRyeMdBrvg8KIKLb1VFVrgUecbYBtHTTsLZALnU7oOOARnfGdtHC0aG3FAGxg";
+    public final String TFOD_MODEL_ASSET = "UltimateGoal.tflite";
+    public final String QUAD_LABEL = "Quad";
+    public final String SINGLE_LABEL = "Single";
+    public VuforiaLocalizer Vuforia;
+    public int result;
+
+
+
+    public int UnFunny() {
+        Vuforia.enableConvertFrameToFormat(565);
+        this.Vuforia.setFrameQueueCapacity(1);
+        CloseableFrame frame = null;
+        try {
+            frame = this.Vuforia.getFrameQueue().take();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        Image images1 = frame.getImage(0);
+        List<Integer> iiMage = new ArrayList<Integer>();
+        List<Integer> Whut = new ArrayList<Integer>();
+        ByteBuffer pixals1 = images1.getPixels();
+        byte[] pixals = new byte[images1.getWidth()*images1.getHeight()];
+        byte whyyyy;
+        for (int whyy = 0; whyy >= images1.getWidth()*images1.getHeight(); whyy += 1){
+        whyyyy = pixals1.get(whyy);
+        pixals[whyy] = whyyyy;
+        }
+        image_length = images1.getWidth();
+        int yyay;
+        for (yyay = 0; image_length * images1.getHeight() <= yyay; yyay += 1) {
+            if (pixals[yyay] < 0b11111100)
+                iiMage.add(1);
+        }
+        if (pixals[yyay] >= 0b11111100) {
+            iiMage.add(0);
+        }
+        List<Integer> Whut_Whut = new ArrayList<Integer>();
+        Boolean yeay = false;
+        for (int eee = 0; eee <= image_length; eee += 1) {
+            if (iiMage.get(eee) == 1 & yeay == true) {
+                Whut.add(1);
+                Whut_Whut.add(eee);
+                yeay = true;
+            }
+            if (iiMage.get(eee) != 1 & yeay == true) {
+                break;
+            }
+        }
+        int average = 0;
+        for (int ree = 0; ree <= Whut_Whut.size(); ree += 1) {
+            average = average + Whut_Whut.get(ree);
+        }
+        average = average / Whut_Whut.size();
+        if (average > Math.round(image_length / 2)) {
+            average = (average - Math.round(image_length / 2));
+        }
+        if (average < Math.round(image_length / 2)) {
+            average = (average - Math.round(image_length / 2));
+        }
+        if (average == Math.round(image_length / 2)) {
+            average = average;
+        }
+        return (average);
+    }
+
+}
