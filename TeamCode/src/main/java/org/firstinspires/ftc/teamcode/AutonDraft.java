@@ -29,6 +29,9 @@ public class AutonDraft extends LinearOpMode {
     private double LOW_POWER = 0.5;
     private double HIGH_POWER = 1;
 
+    // Arm starting position
+    private double offset = -55;
+
     @Override
     public void runOpMode() throws InterruptedException {
         this.bot = new Robot(hardwareMap, telemetry);
@@ -42,14 +45,16 @@ public class AutonDraft extends LinearOpMode {
         // Reverse the drivetrain so that the camera can be mounted on the back without changing driving plans
         bot.reverseDrivetrain();
         // Register the Wobble Arm
-        bot.addDcMotor("arm", 360, 288, true, true);
-        bot.moveDcMotor("arm", 0);
+        bot.addLimitedMotor("arm", "armLimit", "armLimit", 360, 3*288, true);
 
         bot.addDcMotor("launcher", false);
         bot.runAtConstantVelocity("launcher");
 
         bot.addServo("flipper");
-        bot.rotateServo("flipper", 180, 0);
+        bot.rotateServo("flipper", 120, 0);
+
+        bot.addServo("claw", 270, 180, 0);
+        bot.rotateServo("claw", 0, 0);
 
         bot.initCV(
             VUFORIA_KEY,
@@ -59,6 +64,9 @@ public class AutonDraft extends LinearOpMode {
         );
 
         waitForStart();
+
+        // Zero arm position
+        bot.resetLimitedMotor("arm", 0.2);
 
         if(bot.isCVReady){
             // Determine where to deliver the Wobble Goal by looking at the starter stack
@@ -99,7 +107,7 @@ public class AutonDraft extends LinearOpMode {
                     stackedRings = 4;
                 }else if(single != null){
                     stackedRings = 1;
-                }else{
+                    }else{
                     stackedRings = 0;
                 }
             }catch(Exception e){
@@ -159,10 +167,14 @@ public class AutonDraft extends LinearOpMode {
 
     private void dropWobbleGoal(){
         bot.stop();
-        bot.moveDcMotor("arm", -125, 0.7, false);
+
+        // Drop and release the wobble goal
+        bot.moveDcMotor("arm", -90 + offset, 0.7, false);
+        bot.rotateServo("claw", 90, 250);
+
+        // Drive away from the wobble and raise the arm
         bot.drive(LOW_POWER/2, 0.2*TILE_SIZE, Robot.Direction.FORWARD);
-        telemetry.addData("Dropped Wobble Goal!", "");
-        telemetry.update();
+        bot.moveDcMotor("arm", 0, 0.7, false);
     }
 
     private void goBehindLine(double[] directions){
@@ -176,12 +188,12 @@ public class AutonDraft extends LinearOpMode {
     }
 
     private void shoot(){
-        bot.moveDcMotor("launcher", 0.8);
+        bot.moveDcMotor("launcher", 0.65);
         bot.waitMillis(1000);
 
         for(int i = 0; i < 3; i++){
-            bot.rotateServo("flipper", 120, 250);
-            bot.rotateServo("flipper", 180, 500);
+            bot.rotateServo("flipper", 180, 250);
+            bot.rotateServo("flipper", 120, 500);
         }
 
         bot.moveDcMotor("launcher", 0);

@@ -18,7 +18,7 @@ public class APIV2Test extends OpMode {
                 mRB = new DcMotorX(hardwareMap.dcMotor.get("mRB")),
                 mLB = new DcMotorX(hardwareMap.dcMotor.get("mLB"));
 
-        drivetrain = new Drivetrain(mRF, mLF, mRB, mLB, true);
+        drivetrain = new Drivetrain(mRF, mLF, mRB, mLB);
     }
 
     public void loop(){

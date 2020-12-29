@@ -20,7 +20,7 @@ public class Odometry implements Runnable {
     // Encoder "dead" wheels (Right, Left, and Back)
     private DcMotorX wheelR, wheelL, wheelB;
     // Ticks read by the back encoder per degree of rotation (measure experimentally)
-    private int backTicksPerDegree;
+    private double backDistancePerDegree;
     // Width between the left and right encoders
     private double width;
 
@@ -29,14 +29,14 @@ public class Odometry implements Runnable {
     public double y;
     public double phi;
 
-    public Odometry(DcMotorX wheelR, DcMotorX wheelL, DcMotorX wheelB, int backTicksPerDegree, int cycleTime, double width, double x0, double y0, double phi0){
+    public Odometry(DcMotorX wheelR, DcMotorX wheelL, DcMotorX wheelB, int cycleTime, double backDistancePerDegree, double width, double x0, double y0, double phi0){
         this.cycleTime = cycleTime;
 
         this.wheelR = wheelR;
         this.wheelL = wheelL;
         this.wheelB = wheelB;
 
-        this.backTicksPerDegree = backTicksPerDegree;
+        this.backDistancePerDegree = backDistancePerDegree;
         this.width = width;
 
         this.x = x0;
@@ -70,7 +70,7 @@ public class Odometry implements Runnable {
 
         // Use this to find linear and perpendicular motion
         double dS = arcdS(dR, dL, dphi);
-        double dP = dB - backTicksPerDegree*dphi;
+        double dP = dB - backDistancePerDegree*dphi;
 
         // Add components of the linear and perpendicular motion to update position
         x += dS*Math.cos(phi + dphi/2) + dP*Math.sin(phi + dphi/2);

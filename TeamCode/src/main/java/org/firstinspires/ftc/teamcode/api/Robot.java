@@ -754,12 +754,12 @@ public class Robot {
         return pressed;
     }
 
-    public void resetLimitedMotor(String motor){
-        TouchSensor endSensor = limitSwitches.get(motor)[1];
+    public void resetLimitedMotor(String motor, double power){
+        TouchSensor endSensor = limitSwitches.get(motor)[power > 0 ? 0 : 1];
         DcMotor motorToReset = dcMotors.get(motor);
 
         while(!endSensor.isPressed()){
-            motorToReset.setPower(-0.2);
+            motorToReset.setPower(power);
         }
 
         motorToReset.setPower(0);

@@ -10,6 +10,8 @@ import com.qualcomm.robotcore.util.Range;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.teamcode.api.Robot;
 
+import java.util.Arrays;
+
 @TeleOp
 public class Drive extends OpMode {
 
@@ -28,8 +30,9 @@ public class Drive extends OpMode {
     private Robot.DpadState lastDpads1 = new Robot.DpadState();
     private Robot.BumperState lastBumpers1 = new Robot.BumperState();
 
-    private int[] armPositions = new int[]{-95, 0, 45};
-    private int currentPositionIndex = 1;
+    private double offset = -55;
+    private double[] armPositions = new double[]{-90 + offset, 0};
+    private int currentPositionIndex = 0;
 
     public void init(){
         this.bot = new Robot(hardwareMap, telemetry);
@@ -42,11 +45,18 @@ public class Drive extends OpMode {
         bot.addDcMotor("launcher", false);
         bot.runAtConstantVelocity("launcher");
 
-        bot.addDcMotor("arm", 360, 288, true, true);
+        bot.addLimitedMotor("arm", "armLimit", "armLimit", 360, 3*288, true);
         bot.moveToStaticPosition("arm", 0, 0, true);
 
         bot.addServo("flipper");
-        bot.rotateServo("flipper", 180, 0);
+        bot.rotateServo("flipper", 120, 0);
+
+        bot.addServo("claw", 270, 180, 0);
+        bot.rotateServo("claw", 0, 0);
+    }
+
+    public void start(){
+        bot.resetLimitedMotor("arm", 0.2);
     }
 
     private void loopGamepad1(){
@@ -101,36 +111,45 @@ public class Drive extends OpMode {
 
         double intakePower = 0;
         if(Math.abs(triggerRight) > 0.05) {
-            intakePower = -triggerRight;
+            intakePower = triggerRight;
         }else if(Math.abs(triggerLeft) > 0.05){
-            intakePower = triggerLeft;
+            intakePower = -triggerLeft;
         }
 
         bot.moveDcMotor("intake", 2*intakePower);
 
 
         // Power the Wobble Goal Arm
-        double maxSpeed = 0.9;
-        if(bumperLeftHit || bumperRightHit){
-            if(bumperLeftHit){
-                if(currentPositionIndex < armPositions.length - 1) currentPositionIndex++;
-            }else if(bumperRightHit){
-                if(currentPositionIndex > 0) currentPositionIndex--;
-            }
+        double maxSpeed = 0.7;
+        if(bumperLeftHit){
+            if(currentPositionIndex < armPositions.length - 1) currentPositionIndex++;
+            else currentPositionIndex--;
 
             bot.moveDcMotor("arm", armPositions[currentPositionIndex] - bot.getMotorPosition("arm"), maxSpeed, true);
-        }else{
+        }
+        // (Optional) custom controller
+        else{
             double error = bot.getTargetPosition("arm") - bot.getMotorPosition("arm");
             double threshold = 5;
 
             bot.moveDcMotor("arm", bot.getControlledSpeed(maxSpeed, threshold, error));
         }
 
-        // Move the arm between 0 and 180 degrees at 90 degree increments
+        // Move the claw servo
+        if(bumperRightHit){
+            telemetry.addData("claw moving", bot.getServoPos("claw"));
 
+            if(bot.getServoPos("claw") > 0){
+                bot.rotateServo("claw", 0, 0);
+            }else{
+                bot.rotateServo("claw", 90, 0);
+            }
+        }
+
+        // Move the launcher servo
         if(aHit){
-            bot.rotateServo("flipper", 120, 250);
-            bot.rotateServo("flipper", 180, 0);
+            bot.rotateServo("flipper", 180, 250);
+            bot.rotateServo("flipper", 120, 0);
         }
 
         // Turn intake wheels on/off
@@ -175,9 +194,6 @@ public class Drive extends OpMode {
 
     @Override
     public void loop(){
-
         loopGamepad1();
     }
-
-    private boolean xyabOn(Gamepad gamepad){ return gamepad.a || gamepad.b || gamepad.x || gamepad.y; }
 }

@@ -16,7 +16,7 @@ public class OdometryTest extends OpMode {
     private int ticksPerRev = 280;
 
     private double width = 30;
-    private int backTicksPerDegree = 1;
+    private double backDistancePerDegree = 0.5;
 
     private double x0 = 0;
     private double y0 = 0;
@@ -31,7 +31,7 @@ public class OdometryTest extends OpMode {
         DcMotorX motorL = new DcMotorX(hardwareMap.dcMotor.get("motorL"), ticksPerRev, circumference);
         DcMotorX motorB = new DcMotorX(hardwareMap.dcMotor.get("motorB"), ticksPerRev, circumference);
 
-        positionTracker = new Odometry(motorR, motorL, motorB, backTicksPerDegree, 10, width, x0, y0, phi0);
+        positionTracker = new Odometry(motorR, motorL, motorB, 10, backDistancePerDegree, width, x0, y0, phi0);
 
         Thread positionThread = new Thread(positionTracker);
         positionThread.start();

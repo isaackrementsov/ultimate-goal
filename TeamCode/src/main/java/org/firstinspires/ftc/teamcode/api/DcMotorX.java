@@ -59,6 +59,8 @@ public class DcMotorX {
     public double getPower(){
         return core.getPower();
     }
+    
+    public double getVelocity() { return getPower(); }
 
     public void setPower(double power){
         core.setPower(power);
@@ -106,4 +108,16 @@ public class DcMotorX {
     public double getTargetPosition(){
         return getDistanceFrom(core.getTargetPosition());
     }
+
+    public void setBrake(boolean brake){
+        if(brake){
+            core.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        }else{
+            core.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        }
+    }
+
+    protected void setTargetPosition(double targetPosition){ core.setTargetPosition(getEncoderPosition(targetPosition)); }
+
+    protected void setTargetDistance(double targetDistance){ setTargetPosition(getPosition() + targetDistance); }
 }

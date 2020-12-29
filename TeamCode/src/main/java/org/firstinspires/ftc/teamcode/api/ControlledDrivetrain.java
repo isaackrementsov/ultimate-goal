@@ -16,6 +16,11 @@ public class ControlledDrivetrain extends Drivetrain implements Runnable {
     // Time that each update actually takes (in seconds), used to compute integrals/derivatives wrt time
     private double dt;
 
+    // Threshold to determine whether the robot is close enough to the target position
+    private double xThreshold;
+    private double yThreshold;
+    private double phiThreshold;
+
     // Target coordinates/heading
     private double xT;
     private double yT;
@@ -39,20 +44,40 @@ public class ControlledDrivetrain extends Drivetrain implements Runnable {
     // Odometry thread for tracking position
     private Odometry positionTracker;
 
-    // Basic constructor (no tuning options)
-    public ControlledDrivetrain(DcMotorX mRF, DcMotorX mLF, DcMotorX mRB, DcMotorX mLB, Odometry positionTracker, boolean reverseLeft){
-        this(mRF, mLF, mRB, mLB, reverseLeft, positionTracker, new double[]{1,1,1}, new double[]{1,1,1}, new double[]{1,1,1}, 50);
+    // Basic constructor (no tuning options or custom thresholds)
+    public ControlledDrivetrain(DcMotorX mRF, DcMotorX mLF, DcMotorX mRB, DcMotorX mLB, Odometry positionTracker){
+        this(
+                mRF, mLF, mRB, mLB,
+                positionTracker,
+                0.01, 0.01, 0.01,
+                new double[]{1,1,1}, new double[]{1,1,1}, new double[]{1,1,1}, 50
+        );
+    }
+
+    // Constructor that allows thresholds to be changed
+    public ControlledDrivetrain(DcMotorX mRF, DcMotorX mLF, DcMotorX mRB, DcMotorX mLB, Odometry positionTracker, double xThreshold, double yThreshold, double phiThreshold){
+        this(
+                mRF, mLF, mRB, mLB,
+                positionTracker,
+                xThreshold, yThreshold, phiThreshold,
+                new double[]{1,1,1}, new double[]{1,1,1}, new double[]{1,1,1}, 50
+        );
     }
 
     // Full constructor with tuning options
-    public ControlledDrivetrain(DcMotorX mRF, DcMotorX mLF, DcMotorX mRB, DcMotorX mLB, boolean reverseLeft, Odometry positionTracker, double[] Kp, double[] Ki, double[] Kd, int cycleTime){
-        super(mRF, mLF, mRB, mLB, reverseLeft);
+    public ControlledDrivetrain(DcMotorX mRF, DcMotorX mLF, DcMotorX mRB, DcMotorX mLB, Odometry positionTracker, double xThreshold, double yThreshold, double phiThreshold, double[] Kp, double[] Ki, double[] Kd, int cycleTime){
+        super(mRF, mLF, mRB, mLB);
 
         // Add the position tracker and start the target coordinates at the initial reading
         this.positionTracker = positionTracker;
         this.xT = positionTracker.x;
         this.yT = positionTracker.y;
         this.phiT = positionTracker.phi;
+
+        // Set thresholds
+        this.xThreshold = xThreshold;
+        this.yThreshold = yThreshold;
+        this.phiThreshold = phiThreshold;
 
         // PID coefficients
         this.Kp = Kp;
@@ -116,6 +141,14 @@ public class ControlledDrivetrain extends Drivetrain implements Runnable {
         ExL = xT - positionTracker.x;
         EyL = yT - positionTracker.y;
         EphiL = phiT - positionTracker.phi;
+    }
+
+    public boolean isBusy(){
+        double Ex = xT - positionTracker.x;
+        double Ey = yT - positionTracker.y;
+        double Ephi = phiT - positionTracker.phi;
+
+        return Math.abs(Ex) <= xThreshold && Math.abs(Ey) <= yThreshold && Math.abs(Ephi) < phiThreshold;
     }
 
     // Run the update() loop continuously
