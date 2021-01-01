@@ -30,7 +30,11 @@ public class AutonDraft extends LinearOpMode {
     private double HIGH_POWER = 1;
 
     // Arm starting position
-    private double offset = -55;
+    private double offset = -60;
+    // Where the robot starts (in tiles from the right wall)
+    private double STARTING_POS = 2.5;
+    private double DETECTION_POS = 0.6;
+    private double SHOOTING_POS = 0.55;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -71,7 +75,7 @@ public class AutonDraft extends LinearOpMode {
         if(bot.isCVReady){
             // Determine where to deliver the Wobble Goal by looking at the starter stack
             // Give the bot 2 seconds to look
-            char zone = determineTargetZone(2000);
+            char zone = determineTargetZone(3000);
 
             telemetry.addData("Target Zone: ", zone);
             telemetry.update();
@@ -90,6 +94,8 @@ public class AutonDraft extends LinearOpMode {
     private char determineTargetZone(int waitTime){
         // Number of rings in the starter stack
         int stackedRings = 0;
+
+        bot.drive(0.2, DETECTION_POS*TILE_SIZE, Robot.Direction.FORWARD);
 
         // Define time that the robot should be done looking at the stack
         long t = System.currentTimeMillis();
@@ -131,28 +137,28 @@ public class AutonDraft extends LinearOpMode {
         double driveLeft = 0;
 
         // Shift outward from the starter stack to avoid hitting it
-        bot.drive(LOW_POWER, TILE_SIZE*0.5, Robot.Direction.LEFT);
-        bot.drive(LOW_POWER, TILE_SIZE*3, Robot.Direction.FORWARD);
+        bot.drive(LOW_POWER, TILE_SIZE*(3 - STARTING_POS), Robot.Direction.LEFT);
+        bot.drive(LOW_POWER, TILE_SIZE*(3 - DETECTION_POS), Robot.Direction.FORWARD);
 
         switch(zone){
             case 'a':
-                driveBackward = 0;
-                driveLeft = 1.5;
+                driveBackward = 0.4;
+                driveLeft = 1.2;
 
-                bot.drive(LOW_POWER, TILE_SIZE*driveLeft, Robot.Direction.RIGHT);
+                bot.drive(LOW_POWER, driveLeft*TILE_SIZE, Robot.Direction.RIGHT);
 
                 break;
             case 'b':
-                driveBackward = 1;
-                driveLeft = 0.5;
+                driveBackward = 1.2;
+                driveLeft = 0.2;
 
                 bot.drive(LOW_POWER, driveBackward*TILE_SIZE, Robot.Direction.FORWARD);
                 bot.drive(LOW_POWER, driveLeft*TILE_SIZE, Robot.Direction.RIGHT);
 
                 break;
             case 'c':
-                driveBackward = 1.65;
-                driveLeft = 1.5;
+                driveBackward = 2;
+                driveLeft = 1.2;
 
                 bot.drive(LOW_POWER, driveBackward*TILE_SIZE, Robot.Direction.FORWARD);
                 bot.drive(LOW_POWER, driveLeft*TILE_SIZE, Robot.Direction.RIGHT);
@@ -162,7 +168,8 @@ public class AutonDraft extends LinearOpMode {
 
         dropWobbleGoal();
 
-        return new double[]{driveBackward + 1 + 0.2, driveLeft};
+        // Directions to go behind line before shooting
+        return new double[]{driveBackward + SHOOTING_POS, driveLeft - 0.45};
     }
 
     private void dropWobbleGoal(){
@@ -170,25 +177,23 @@ public class AutonDraft extends LinearOpMode {
 
         // Drop and release the wobble goal
         bot.moveDcMotor("arm", -90 + offset, 0.7, false);
-        bot.rotateServo("claw", 90, 250);
-
-        // Drive away from the wobble and raise the arm
-        bot.drive(LOW_POWER/2, 0.2*TILE_SIZE, Robot.Direction.FORWARD);
-        bot.moveDcMotor("arm", 0, 0.7, false);
+        bot.rotateServo("claw", 100, 250);
+        // Raise the arm
+        bot.moveToStaticPosition("arm", 0, 0.7, false);
     }
 
     private void goBehindLine(double[] directions){
         double driveBackward = directions[0];
         double driveLeft = directions[1];
 
-        bot.drive(LOW_POWER, TILE_SIZE*driveLeft, Robot.Direction.LEFT);
         bot.drive(LOW_POWER, TILE_SIZE*driveBackward, Robot.Direction.BACKWARD);
+        bot.drive(LOW_POWER, TILE_SIZE*driveLeft, Robot.Direction.LEFT);
 
         bot.stop();
     }
 
     private void shoot(){
-        bot.moveDcMotor("launcher", 0.65);
+        bot.moveDcMotor("launcher", 0.6);
         bot.waitMillis(1000);
 
         for(int i = 0; i < 3; i++){
@@ -197,6 +202,6 @@ public class AutonDraft extends LinearOpMode {
         }
 
         bot.moveDcMotor("launcher", 0);
-        bot.drive(LOW_POWER, TILE_SIZE, Robot.Direction.FORWARD);
+        bot.drive(LOW_POWER, (SHOOTING_POS + 0.1)*TILE_SIZE, Robot.Direction.FORWARD);
     }
 }

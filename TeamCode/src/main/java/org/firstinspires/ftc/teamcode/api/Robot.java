@@ -534,11 +534,15 @@ public class Robot {
         }
     }
 
-    public double getControlledSpeed(double maxSpeed, double threshold, double error){
+    public double getControlledSpeed(double maxSpeed, double threshold, double error, boolean useThreshold){
         double speed = Math.signum(error)*maxSpeed;
 
         if(Math.abs(error) < 2*threshold){
             speed *= error / (2*threshold);
+        }
+
+        if(Math.abs(error) < threshold && useThreshold){
+            speed = 0;
         }
 
         return speed;
@@ -555,10 +559,10 @@ public class Robot {
 
         if(!teleOp){
             double error = getTargetPosition(motor) - getMotorPosition(motor);
-            double threshold = 1;
-
+            double threshold = 2;
+            telemetry.addData("Error", error);
             while(Math.abs(error) > threshold){
-                dcMotors.get(motor).setPower(getControlledSpeed(motorPower, threshold, error));
+                dcMotors.get(motor).setPower(getControlledSpeed(motorPower, threshold, error, false));
                 error = getTargetPosition(motor) - getMotorPosition(motor);
             }
 
@@ -820,14 +824,9 @@ public class Robot {
         }
     }
 
-    public double getServoPos(String motor){
-        Double startAngle = servoPositions.get(motor);
-
-        if(startAngle != null){
-            return startAngle;
-        }else{
-            return 0;
-        }
+    public double getServoAngle(String motor){
+        Double rotationAngle = servoLimits.get(motor)[0];
+        return servos.get(motor).getPosition()*rotationAngle;
     }
 
     public void rotateServo(String motor, double angle, int waitTimeMillis){

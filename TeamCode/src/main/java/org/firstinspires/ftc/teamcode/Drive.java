@@ -18,7 +18,7 @@ public class Drive extends OpMode {
     private Robot bot;
 
     private double power = 0.5;
-    private double launcherSpeed = 0.8;
+    private double launcherSpeed = 0.6;
 
     private final String VUFORIA_KEY = "AY3aN3z/////AAABmUIe2Kd1wEt0nkr2MAal4OQiiEFWa3aLCHRnFBO1wd2HDT+GFXOTpcrhqEiZumOHpODdyVc55cYOiTSxpPrN+zfw7ZYB8X5z3gRLRIhPj4BJLD0/vPTKil7rDPSluUddISeCHL1HzPdIfiZiG/HQ89vhBdLfrWpngKLF4tH4FB4YWdKZu5J9EBtVTlXqR1OUXVTM3p9DepM9KukrVxMESF/ve+RYix7UXMO5qbljnc/LjQdplFO8oX4ztEe3aMXN14GadXggrfW+0m3nUmT8rXNTprc62LR1v0RbB4L+0QWfbgSDRyeMdBrvg8KIKLb1VFVrgUecbYBtHTTsLZALnU7oOOARnfGdtHC0aG3FAGxg";
     private final String TFOD_MODEL_ASSET = "UltimateGoal.tflite";
@@ -30,8 +30,11 @@ public class Drive extends OpMode {
     private Robot.DpadState lastDpads1 = new Robot.DpadState();
     private Robot.BumperState lastBumpers1 = new Robot.BumperState();
 
-    private double offset = -55;
-    private double[] armPositions = new double[]{-90 + offset, 0};
+    private double lastTimeHit = System.currentTimeMillis();
+    private boolean flipperClosed = false;
+
+    private double offset = -60;
+    private double[] armPositions = new double[]{0, -45 + offset, -90 + offset};
     private int currentPositionIndex = 0;
 
     public void init(){
@@ -98,7 +101,7 @@ public class Drive extends OpMode {
 
         // Drive the robot with joysticks if they are moved
         if(Math.abs(leftX) > .1 || Math.abs(rightX) > .1 || Math.abs(rightY) > .1) {
-            bot.drive(power, leftX, rightX, rightY);
+            bot.drive(1, leftX, power*rightX, power*rightY);
         }else{
             // If the joysticks are not pressed, do not move the bot
             bot.stop();
@@ -121,34 +124,39 @@ public class Drive extends OpMode {
 
         // Power the Wobble Goal Arm
         double maxSpeed = 0.7;
+        telemetry.addData("current index", currentPositionIndex);
         if(bumperLeftHit){
             if(currentPositionIndex < armPositions.length - 1) currentPositionIndex++;
-            else currentPositionIndex--;
+            else currentPositionIndex = 0;
 
             bot.moveDcMotor("arm", armPositions[currentPositionIndex] - bot.getMotorPosition("arm"), maxSpeed, true);
         }
         // (Optional) custom controller
         else{
             double error = bot.getTargetPosition("arm") - bot.getMotorPosition("arm");
-            double threshold = 5;
+            double threshold = 2;
 
-            bot.moveDcMotor("arm", bot.getControlledSpeed(maxSpeed, threshold, error));
+            bot.moveDcMotor("arm", bot.getControlledSpeed(maxSpeed, threshold, error, true));
         }
 
         // Move the claw servo
         if(bumperRightHit){
-            telemetry.addData("claw moving", bot.getServoPos("claw"));
-
-            if(bot.getServoPos("claw") > 0){
+            if(bot.getServoAngle("claw") > 0){
                 bot.rotateServo("claw", 0, 0);
             }else{
-                bot.rotateServo("claw", 90, 0);
+                bot.rotateServo("claw", 100, 0);
             }
         }
 
         // Move the launcher servo
-        if(aHit){
-            bot.rotateServo("flipper", 180, 250);
+        double timeElapsed = System.currentTimeMillis() - lastTimeHit;
+
+        if(aHit || (a && timeElapsed > 400)){
+            lastTimeHit = System.currentTimeMillis();
+            flipperClosed = false;
+            bot.rotateServo("flipper", 160, 0);
+        }else if(timeElapsed > 200 && !flipperClosed){
+            flipperClosed = true;
             bot.rotateServo("flipper", 120, 0);
         }
 
