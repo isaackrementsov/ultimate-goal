@@ -55,7 +55,7 @@ public class Drive extends OpMode {
         bot.rotateServo("flipper", 100, 0);
 
         bot.addServo("claw", 270, 180, 0);
-        bot.rotateServo("claw", 0, 0);
+        bot.rotateServo("claw", 100, 0);
     }
 
     public void start(){
