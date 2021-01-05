@@ -55,7 +55,7 @@ public class AutonDraft extends LinearOpMode {
         bot.runAtConstantVelocity("launcher");
 
         bot.addServo("flipper");
-        bot.rotateServo("flipper", 120, 0);
+        bot.rotateServo("flipper", 100, 0);
 
         bot.addServo("claw", 270, 180, 0);
         bot.rotateServo("claw", 0, 0);
@@ -179,7 +179,7 @@ public class AutonDraft extends LinearOpMode {
         bot.moveDcMotor("arm", -90 + offset, 0.7, false);
         bot.rotateServo("claw", 100, 250);
         // Raise the arm
-        bot.moveToStaticPosition("arm", 0, 0.7, false);
+        bot.moveLimitedMotor("arm", 0.7);
     }
 
     private void goBehindLine(double[] directions){
@@ -193,12 +193,12 @@ public class AutonDraft extends LinearOpMode {
     }
 
     private void shoot(){
-        bot.moveDcMotor("launcher", 0.6);
+        bot.moveDcMotor("launcher", 0.7);
         bot.waitMillis(1000);
 
         for(int i = 0; i < 3; i++){
-            bot.rotateServo("flipper", 180, 250);
-            bot.rotateServo("flipper", 120, 500);
+            bot.rotateServo("flipper", 160, 250);
+            bot.rotateServo("flipper", 100, 500);
         }
 
         bot.moveDcMotor("launcher", 0);
