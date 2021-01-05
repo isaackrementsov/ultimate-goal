@@ -179,7 +179,7 @@ public class AutonDraft extends LinearOpMode {
         bot.moveDcMotor("arm", -90 + offset, 0.7, false);
         bot.rotateServo("claw", 100, 250);
         // Raise the arm
-        bot.moveLimitedMotor("arm", 0.7);
+        bot.moveToStaticPosition("arm", 0, 0.7, false);
     }
 
     private void goBehindLine(double[] directions){
