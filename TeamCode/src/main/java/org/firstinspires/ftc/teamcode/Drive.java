@@ -17,8 +17,8 @@ public class Drive extends OpMode {
 
     private Robot bot;
 
-    private double power = 0.5;
-    private double launcherSpeed = 0.6;
+    private double power = 0.75;
+    private double launcherSpeed = 0.7;
 
     private final String VUFORIA_KEY = "AY3aN3z/////AAABmUIe2Kd1wEt0nkr2MAal4OQiiEFWa3aLCHRnFBO1wd2HDT+GFXOTpcrhqEiZumOHpODdyVc55cYOiTSxpPrN+zfw7ZYB8X5z3gRLRIhPj4BJLD0/vPTKil7rDPSluUddISeCHL1HzPdIfiZiG/HQ89vhBdLfrWpngKLF4tH4FB4YWdKZu5J9EBtVTlXqR1OUXVTM3p9DepM9KukrVxMESF/ve+RYix7UXMO5qbljnc/LjQdplFO8oX4ztEe3aMXN14GadXggrfW+0m3nUmT8rXNTprc62LR1v0RbB4L+0QWfbgSDRyeMdBrvg8KIKLb1VFVrgUecbYBtHTTsLZALnU7oOOARnfGdtHC0aG3FAGxg";
     private final String TFOD_MODEL_ASSET = "UltimateGoal.tflite";
@@ -52,10 +52,10 @@ public class Drive extends OpMode {
         bot.moveToStaticPosition("arm", 0, 0, true);
 
         bot.addServo("flipper");
-        bot.rotateServo("flipper", 120, 0);
+        bot.rotateServo("flipper", 100, 0);
 
         bot.addServo("claw", 270, 180, 0);
-        bot.rotateServo("claw", 0, 0);
+        bot.rotateServo("claw", 100, 0);
     }
 
     public void start(){
@@ -101,7 +101,7 @@ public class Drive extends OpMode {
 
         // Drive the robot with joysticks if they are moved
         if(Math.abs(leftX) > .1 || Math.abs(rightX) > .1 || Math.abs(rightY) > .1) {
-            bot.drive(1, leftX, power*rightX, power*rightY);
+            bot.drive(1, 0.5*leftX, power*rightX, power*rightY);
         }else{
             // If the joysticks are not pressed, do not move the bot
             bot.stop();
@@ -157,7 +157,7 @@ public class Drive extends OpMode {
             bot.rotateServo("flipper", 160, 0);
         }else if(timeElapsed > 200 && !flipperClosed){
             flipperClosed = true;
-            bot.rotateServo("flipper", 120, 0);
+            bot.rotateServo("flipper", 100, 0);
         }
 
         // Turn intake wheels on/off
