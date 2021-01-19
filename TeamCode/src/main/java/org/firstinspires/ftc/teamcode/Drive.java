@@ -17,7 +17,7 @@ public class Drive extends OpMode {
 
     private Robot bot;
 
-    private double power = 0.75;
+    //private double power = 0.75;
     private double launcherSpeed = 0.7;
 
     private final String VUFORIA_KEY = "AY3aN3z/////AAABmUIe2Kd1wEt0nkr2MAal4OQiiEFWa3aLCHRnFBO1wd2HDT+GFXOTpcrhqEiZumOHpODdyVc55cYOiTSxpPrN+zfw7ZYB8X5z3gRLRIhPj4BJLD0/vPTKil7rDPSluUddISeCHL1HzPdIfiZiG/HQ89vhBdLfrWpngKLF4tH4FB4YWdKZu5J9EBtVTlXqR1OUXVTM3p9DepM9KukrVxMESF/ve+RYix7UXMO5qbljnc/LjQdplFO8oX4ztEe3aMXN14GadXggrfW+0m3nUmT8rXNTprc62LR1v0RbB4L+0QWfbgSDRyeMdBrvg8KIKLb1VFVrgUecbYBtHTTsLZALnU7oOOARnfGdtHC0aG3FAGxg";
@@ -91,17 +91,18 @@ public class Drive extends OpMode {
         boolean aHit = a && !lastButtons1.a;
 
         // Use dpads to increment power
-        double increment = 0.05;
-        if(dpadUpHit){
-            if(power < 1 - increment) power += increment;
-        }else if(dpadDownHit){
-            if(power > increment) power -= increment;
-        }
-        telemetry.addData("Drivetrain power", 100*power + "%");
+//        double increment = 0.05;
+//        if(dpadUpHit){
+//            if(power < 1 - increment) power += increment;
+//        }else if(dpadDownHit){
+//            if(power > increment) power -= increment;
+//        }
+//        telemetry.addData("Drivetrain power", 100*power + "%");
 
         // Drive the robot with joysticks if they are moved
         if(Math.abs(leftX) > .1 || Math.abs(rightX) > .1 || Math.abs(rightY) > .1) {
-            bot.drive(1, 0.5*leftX, power*rightX, power*rightY);
+        //  bot.drive(1, 0.5*leftX, power*rightX, power*rightY);      //no curve
+            bot.drive(1, 0.5*leftX, rateCurve(rightX,1.7), rateCurve(rightY, 1.7));      //curved stick rates
         }else{
             // If the joysticks are not pressed, do not move the bot
             bot.stop();
@@ -198,6 +199,10 @@ public class Drive extends OpMode {
         lastButtons1.update(a, b, x, y);
         lastDpads1.update(dpadUp, dpadDown, dpadRight, dpadLeft);
         lastBumpers1.update(bumperRight, bumperLeft);
+    }
+
+    private double rateCurve(double input, double rate){
+        return Math.pow(Math.abs(input),rate)*((input>0)?1:-1);
     }
 
     @Override
