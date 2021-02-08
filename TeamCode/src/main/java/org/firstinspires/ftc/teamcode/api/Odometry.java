@@ -18,7 +18,7 @@ public class Odometry implements Runnable {
     private int cycleTime;
 
     // Encoder "dead" wheels (Right, Left, and Back)
-    private DcMotorX wheelR, wheelL, wheelB;
+    public DcMotorX wheelR, wheelL, wheelB;
     // Ticks read by the back encoder per degree of rotation (measure experimentally)
     private double backDistancePerDegree;
     // Width between the left and right encoders
