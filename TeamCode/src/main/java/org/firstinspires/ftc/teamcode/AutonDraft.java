@@ -33,7 +33,7 @@ public class AutonDraft extends LinearOpMode {
     private double offset = -60;
     // Where the robot starts (in tiles from the right wall)
     private double STARTING_POS = 2.5;
-    private double DETECTION_POS = 0.6;
+    private double DETECTION_POS = 0.5;
     private double SHOOTING_POS = 0.55;
 
     @Override
