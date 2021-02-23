@@ -9,19 +9,30 @@ import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
+import org.firstinspires.ftc.teamcode.api.ControlledDrivetrain;
+import org.firstinspires.ftc.teamcode.api.DcMotorX;
+import org.firstinspires.ftc.teamcode.api.Odometry;
 import org.firstinspires.ftc.teamcode.api.Robot;
 
 import java.util.List;
 
 @Autonomous
-public class AutonDraft extends LinearOpMode {
+public class AutonOdometry extends LinearOpMode {
 
     private Robot bot;
+
+    // Odometry parameters
+    private int ticksPerRev = 767;
+    private double circumference = 15.71;
+    private double width = 40.8;
+    private double backDistancePerRadian = -41.577/(2*Math.PI);
 
     private final String VUFORIA_KEY = "AY3aN3z/////AAABmUIe2Kd1wEt0nkr2MAal4OQiiEFWa3aLCHRnFBO1wd2HDT+GFXOTpcrhqEiZumOHpODdyVc55cYOiTSxpPrN+zfw7ZYB8X5z3gRLRIhPj4BJLD0/vPTKil7rDPSluUddISeCHL1HzPdIfiZiG/HQ89vhBdLfrWpngKLF4tH4FB4YWdKZu5J9EBtVTlXqR1OUXVTM3p9DepM9KukrVxMESF/ve+RYix7UXMO5qbljnc/LjQdplFO8oX4ztEe3aMXN14GadXggrfW+0m3nUmT8rXNTprc62LR1v0RbB4L+0QWfbgSDRyeMdBrvg8KIKLb1VFVrgUecbYBtHTTsLZALnU7oOOARnfGdtHC0aG3FAGxg";
     private final String TFOD_MODEL_ASSET = "UltimateGoal.tflite";
     private final String QUAD_LABEL = "Quad";
     private final String SINGLE_LABEL = "Single";
+
+    private ControlledDrivetrain drivetrain;
 
     private final double TILE_SIZE = 60.96;
 
@@ -37,16 +48,31 @@ public class AutonDraft extends LinearOpMode {
 
     @Override
     public void runOpMode() throws InterruptedException {
-        this.bot = new Robot(hardwareMap, telemetry);
-        bot.addDrivetrain(
-                new String[]{"mRF", "mLF", "mRB", "mLB"},
-                new double[]{31.42, 31.42, 31.42, 31.42},
-                new double[]{767.2, 767.2, 767.2, 767.2},
-                1,
-                true
+        // Get all of the drivetrain motors
+        DcMotorX mRF= new DcMotorX(hardwareMap.dcMotor.get("mRF")),
+                mLF = new DcMotorX(hardwareMap.dcMotor.get("mRF")),
+                mRB = new DcMotorX(hardwareMap.dcMotor.get("mRB")),
+                mLB = new DcMotorX(hardwareMap.dcMotor.get("mLB"));
+
+        // Get the odometry wheels
+        DcMotorX wheelR = new DcMotorX(hardwareMap.dcMotor.get("wheelR"), ticksPerRev, circumference),
+                wheelL = new DcMotorX(hardwareMap.dcMotor.get("wheelL"), ticksPerRev, circumference),
+                wheelB = new DcMotorX(hardwareMap.dcMotor.get("wheelB"), ticksPerRev, circumference);
+
+        // Create an odometry instance for the drivetrain
+        Odometry positionTracker = new Odometry(
+                wheelR, wheelL, wheelB,
+                10,
+                backDistancePerRadian, width,
+                STARTING_POS*TILE_SIZE, 0, 0
         );
-        // Reverse the drivetrain so that the camera can be mounted on the back without changing driving plans
-        bot.reverseDrivetrain();
+        // Instantiate the PID-controlled drivetrain
+        drivetrain = new ControlledDrivetrain(mRF, mLF, mRB, mLB, positionTracker);
+        // Run it in a separate thread
+        Thread drivetrainThread = new Thread(drivetrain);
+
+        this.bot = new Robot(hardwareMap, telemetry);
+
         // Register the Wobble Arm
         bot.addLimitedMotor("arm", "armLimit", "armLimit", 360, 3*288, true);
 
@@ -60,13 +86,18 @@ public class AutonDraft extends LinearOpMode {
         bot.rotateServo("claw", 0, 0);
 
         bot.initCV(
-            VUFORIA_KEY,
-            VuforiaLocalizer.CameraDirection.BACK,
-            TFOD_MODEL_ASSET,
-            new String[]{QUAD_LABEL, SINGLE_LABEL}
+                VUFORIA_KEY,
+                VuforiaLocalizer.CameraDirection.BACK,
+                TFOD_MODEL_ASSET,
+                new String[]{QUAD_LABEL, SINGLE_LABEL}
         );
 
         waitForStart();
+
+        // Start the thread
+        drivetrainThread.start();
+        // Tell the drivetrain to actively correct position errors
+        drivetrain.setActive(true);
 
         // Zero arm position
         bot.resetLimitedMotor("arm", 0.2);
@@ -94,6 +125,7 @@ public class AutonDraft extends LinearOpMode {
         // Number of rings in the starter stack
         int stackedRings = 0;
 
+        drivetrain.setPosition(0,0,0);
         bot.drive(0.2, DETECTION_POS*TILE_SIZE, Robot.Direction.FORWARD);
 
         // Define time that the robot should be done looking at the stack
@@ -112,7 +144,7 @@ public class AutonDraft extends LinearOpMode {
                     stackedRings = 4;
                 }else if(single != null){
                     stackedRings = 1;
-                    }else{
+                }else{
                     stackedRings = 0;
                 }
             }catch(Exception e){

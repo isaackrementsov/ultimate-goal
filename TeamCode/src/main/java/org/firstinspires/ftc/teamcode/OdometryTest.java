@@ -23,7 +23,7 @@ public class OdometryTest extends OpMode {
     private int ticksPerRev = 8192;
 
     private double width = 40.8;
-    private double backDistancePerDegree = -41.577/360;
+    private double backDistancePerRadian = -41.577/(2*Math.PI);
 
     private double x0 = 0;
     private double y0 = 0;
@@ -52,7 +52,7 @@ public class OdometryTest extends OpMode {
         DcMotorX motorL = new DcMotorX(hardwareMap.dcMotor.get("mLF"), ticksPerRev, circumference);
         DcMotorX motorB = new DcMotorX(hardwareMap.dcMotor.get("mRF"), ticksPerRev, circumference);
 
-        positionTracker = new Odometry(motorR, motorL, motorB, 10, backDistancePerDegree, width, x0, y0, phi0);
+        positionTracker = new Odometry(motorR, motorL, motorB, 50, backDistancePerRadian, width, x0, y0, phi0);
 
         Thread positionThread = new Thread(positionTracker);
         positionThread.start();
@@ -129,7 +129,8 @@ public class OdometryTest extends OpMode {
 
         telemetry.addData("x", positionTracker.x);
         telemetry.addData("y", positionTracker.y);
-        telemetry.addData("phi", positionTracker.phi);
+        telemetry.addData("phi", positionTracker.phi*(180/Math.PI));
+        telemetry.addData("Odometry cycling time", positionTracker.actualTime);
 
         lastButtons1.update(a, false, x, y);
     }

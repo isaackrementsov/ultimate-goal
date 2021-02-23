@@ -20,28 +20,40 @@ public class Odometry implements Runnable {
     // Encoder "dead" wheels (Right, Left, and Back)
     public DcMotorX wheelR, wheelL, wheelB;
     // Ticks read by the back encoder per degree of rotation (measure experimentally)
-    private double backDistancePerDegree;
+    private double backDistancePerRadian;
     // Width between the left and right encoders
     private double width;
+
+    private double lastR;
+    private double lastL;
+    private double lastB;
 
     // Position coordinates (x, y, heading [phi])
     public double x;
     public double y;
     public double phi;
 
-    public Odometry(DcMotorX wheelR, DcMotorX wheelL, DcMotorX wheelB, int cycleTime, double backDistancePerDegree, double width, double x0, double y0, double phi0){
+    public long actualTime;
+
+    public Odometry(DcMotorX wheelR, DcMotorX wheelL, DcMotorX wheelB, int cycleTime, double backDistancePerRadian, double width, double x0, double y0, double phi0){
         this.cycleTime = cycleTime;
 
         this.wheelR = wheelR;
         this.wheelL = wheelL;
         this.wheelB = wheelB;
 
-        this.backDistancePerDegree = backDistancePerDegree;
+        this.backDistancePerRadian = backDistancePerRadian;
         this.width = width;
 
         this.x = x0;
         this.y = y0;
         this.phi = phi0;
+
+        this.actualTime = cycleTime;
+
+        lastR = wheelR.getPosition();
+        lastL = wheelL.getPosition();
+        lastB = wheelB.getPosition();
     }
 
     public double arcdS(double dR, double dL, double dphi){
@@ -54,42 +66,50 @@ public class Odometry implements Runnable {
         }
     }
 
-    public void update(){
-        // Changes in position measured by the encoders
-        double dR = wheelR.getDisplacement(false);
-        double dL = wheelL.getDisplacement(false);
-        double dB = wheelB.getDisplacement(false);
+    public void update() {
+        long start = System.currentTimeMillis();
 
-        // Save positions to get position changes later
-        wheelR.savePosition(true);
-        wheelL.savePosition(true);
-        wheelB.savePosition(true);
+        double R = wheelR.getPosition();
+        double L = wheelL.getPosition();
+        double B = wheelB.getPosition();
+
+        double dR = R - lastR;
+        double dL = L - lastL;
+        double dB = B - lastB;
+
+        lastR = R;
+        lastL = L;
+        lastB = B;
 
         // Calculate change in heading
-        double dphi = (dR - dL)/width;
+        double dphi = (dR - dL) / width;
 
         // Use this to find linear and perpendicular motion
         double dS = arcdS(dR, dL, dphi);
-        double dP = dB - backDistancePerDegree*dphi;
+        double dP = dB + backDistancePerRadian * dphi;
 
         // Add components of the linear and perpendicular motion to update position
-        x += dS*Math.cos(phi + dphi/2) + dP*Math.sin(phi + dphi/2);
-        y += dS*Math.sin(phi + dphi/2) - dP*Math.cos(phi + dphi/2);
+        x += -dS * Math.sin(phi + dphi / 2) - dP * Math.cos(phi + dphi / 2);
+        y += -dS * Math.cos(phi + dphi / 2) + dP * Math.sin(phi + dphi / 2);
         phi += dphi;
+
+        actualTime = System.currentTimeMillis() - start;
     }
 
     public void run(){
         // Run the thread indefinitely
         while(isRunning){
-            try {
-                // Wait for about a hardware cycle
-                Thread.sleep(cycleTime);
-            }catch(Exception e){
-                e.printStackTrace();
-            }
-
             // Update position coordinate
             update();
+
+            if(actualTime < cycleTime){
+                try {
+                    Thread.sleep(cycleTime - actualTime);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
         }
 
     }
