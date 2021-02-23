@@ -21,15 +21,15 @@ public class ControlledDrivetrain extends Drivetrain implements Runnable {
     private double yThreshold;
     private double phiThreshold;
 
-    // Target coordinates/heading
-    private double xT;
-    private double yT;
-    private double phiT;
+    // Setpoint
+    public double xT;
+    public double yT;
+    public double phiT;
 
     // Error values from the last cycle (used for computing error derivatives)
-    private double ExL = 0;
-    private double EyL = 0;
-    private double EphiL = 0;
+    public double ExL = 0;
+    public double EyL = 0;
+    public double EphiL = 0;
 
     // Integrals of error wrt time
     private double IEx = 0;
@@ -42,15 +42,14 @@ public class ControlledDrivetrain extends Drivetrain implements Runnable {
     private boolean isRunning = true;
 
     // Odometry thread for tracking position
-    private Odometry positionTracker;
+    public Odometry positionTracker;
 
     // Basic constructor (no tuning options or custom thresholds)
     public ControlledDrivetrain(DcMotorX mRF, DcMotorX mLF, DcMotorX mRB, DcMotorX mLB, Odometry positionTracker){
         this(
                 mRF, mLF, mRB, mLB,
                 positionTracker,
-                0.01, 0.01, 0.01,
-                new double[]{1,1,1}, new double[]{1,1,1}, new double[]{1,1,1}, 50
+                0.01, 0.01, 0.01
         );
     }
 
@@ -60,7 +59,7 @@ public class ControlledDrivetrain extends Drivetrain implements Runnable {
                 mRF, mLF, mRB, mLB,
                 positionTracker,
                 xThreshold, yThreshold, phiThreshold,
-                new double[]{1,1,1}, new double[]{1,1,1}, new double[]{1,1,1}, 50
+                new double[]{1,1,1}, new double[]{0,0,0}, new double[]{0,0,0}, 50
         );
     }
 
@@ -68,11 +67,13 @@ public class ControlledDrivetrain extends Drivetrain implements Runnable {
     public ControlledDrivetrain(DcMotorX mRF, DcMotorX mLF, DcMotorX mRB, DcMotorX mLB, Odometry positionTracker, double xThreshold, double yThreshold, double phiThreshold, double[] Kp, double[] Ki, double[] Kd, int cycleTime){
         super(mRF, mLF, mRB, mLB);
 
+        mRF.runWithoutEncoder();
+        mLF.runWithoutEncoder();
+        mRB.runWithoutEncoder();
+        mLB.runWithoutEncoder();
+
         // Add the position tracker and start the target coordinates at the initial reading
         this.positionTracker = positionTracker;
-        this.xT = positionTracker.x;
-        this.yT = positionTracker.y;
-        this.phiT = positionTracker.phi;
 
         // Set thresholds
         this.xThreshold = xThreshold;
@@ -110,9 +111,9 @@ public class ControlledDrivetrain extends Drivetrain implements Runnable {
             double Cphi = Kp[2]*Ephi + Ki[2]*IEphi + Kd[2]*dEphidt;
 
             // Speed at which the robot should move forward/in reverse (calculated from x and y corrections using a rotation matrix)
-            double dsdt = Cx*Math.cos(positionTracker.phi) + Cy*Math.sin(positionTracker.phi);
+            double dsdt = Cx*Math.sin(positionTracker.phi) - Cy*Math.cos(positionTracker.phi);
             // Speed at which the robot should move sideways (strafe) (calculated from x and y corrections using a rotation matrix)
-            double dpdt = Cy*Math.cos(positionTracker.phi) - Cy*Math.sin(positionTracker.phi);
+            double dpdt = Cy*Math.sin(positionTracker.phi) - Cx*Math.cos(positionTracker.phi);
             // Speed at which the robot should rotate (change its heading)
             double dphidt = Cphi;
 

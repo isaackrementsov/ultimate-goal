@@ -9,7 +9,7 @@ package org.firstinspires.ftc.teamcode.api;
 
 public class Drivetrain {
 
-    DcMotorX mRF, mLF, mRB, mLB;
+    public DcMotorX mRF, mLF, mRB, mLB;
 
     public Drivetrain(DcMotorX mRF, DcMotorX mLF, DcMotorX mRB, DcMotorX mLB){
         this.mRF = mRF;
