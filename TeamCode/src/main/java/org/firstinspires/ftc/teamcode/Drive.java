@@ -19,7 +19,7 @@ public class Drive extends OpMode {
 
 //    private double power = 0.75;
 
-    private double launcherSpeed = 0.7;
+    private double launcherSpeed = 0.675;
 
     private final String VUFORIA_KEY = "AY3aN3z/////AAABmUIe2Kd1wEt0nkr2MAal4OQiiEFWa3aLCHRnFBO1wd2HDT+GFXOTpcrhqEiZumOHpODdyVc55cYOiTSxpPrN+zfw7ZYB8X5z3gRLRIhPj4BJLD0/vPTKil7rDPSluUddISeCHL1HzPdIfiZiG/HQ89vhBdLfrWpngKLF4tH4FB4YWdKZu5J9EBtVTlXqR1OUXVTM3p9DepM9KukrVxMESF/ve+RYix7UXMO5qbljnc/LjQdplFO8oX4ztEe3aMXN14GadXggrfW+0m3nUmT8rXNTprc62LR1v0RbB4L+0QWfbgSDRyeMdBrvg8KIKLb1VFVrgUecbYBtHTTsLZALnU7oOOARnfGdtHC0aG3FAGxg";
     private final String TFOD_MODEL_ASSET = "UltimateGoal.tflite";
@@ -53,7 +53,7 @@ public class Drive extends OpMode {
         bot.moveToStaticPosition("arm", 0, 0, true);
 
         bot.addServo("flipper");
-        bot.rotateServo("flipper", 100, 0);
+        bot.rotateServo("flipper", 50, 0);
 
         bot.addServo("claw", 270, 180, 0);
         bot.rotateServo("claw", 100, 0);
@@ -153,14 +153,15 @@ public class Drive extends OpMode {
         // Move the launcher servo
         double timeElapsed = System.currentTimeMillis() - lastTimeHit;
 
-        if(aHit || (a && timeElapsed > 400)){
+        if((aHit || (a && timeElapsed > 450)) && bot.getMotorPower("launcher") > 0){
             lastTimeHit = System.currentTimeMillis();
             flipperClosed = false;
-            bot.rotateServo("flipper", 160, 0);
+            bot.rotateServo("flipper", 25, 0);
         }else if(timeElapsed > 200 && !flipperClosed){
             flipperClosed = true;
-            bot.rotateServo("flipper", 100, 0);
+            bot.rotateServo("flipper", 50, 0);
         }
+
 
         // Turn intake wheels on/off
         double intakeWheelPower = bot.getMotorPower("intakeWheels");
