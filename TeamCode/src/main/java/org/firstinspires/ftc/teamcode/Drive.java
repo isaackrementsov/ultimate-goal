@@ -19,7 +19,7 @@ public class Drive extends OpMode {
 
 //    private double power = 0.75;
 
-    private double launcherSpeed = 0.675;
+    private double launcherSpeed = 0.68;
 
     private final String VUFORIA_KEY = "AY3aN3z/////AAABmUIe2Kd1wEt0nkr2MAal4OQiiEFWa3aLCHRnFBO1wd2HDT+GFXOTpcrhqEiZumOHpODdyVc55cYOiTSxpPrN+zfw7ZYB8X5z3gRLRIhPj4BJLD0/vPTKil7rDPSluUddISeCHL1HzPdIfiZiG/HQ89vhBdLfrWpngKLF4tH4FB4YWdKZu5J9EBtVTlXqR1OUXVTM3p9DepM9KukrVxMESF/ve+RYix7UXMO5qbljnc/LjQdplFO8oX4ztEe3aMXN14GadXggrfW+0m3nUmT8rXNTprc62LR1v0RbB4L+0QWfbgSDRyeMdBrvg8KIKLb1VFVrgUecbYBtHTTsLZALnU7oOOARnfGdtHC0aG3FAGxg";
     private final String TFOD_MODEL_ASSET = "UltimateGoal.tflite";
@@ -35,7 +35,7 @@ public class Drive extends OpMode {
     private boolean flipperClosed = false;
 
     private double offset = -60;
-    private double[] armPositions = new double[]{0, -45 + offset, -90 + offset};
+    private double[] armPositions = new double[]{35 + offset, -45 + offset, -90 + offset};
     private int currentPositionIndex = 0;
 
     public void init(){
@@ -61,6 +61,7 @@ public class Drive extends OpMode {
 
     public void start(){
         bot.resetLimitedMotor("arm", 0.2);
+        bot.moveDcMotor("arm", armPositions[currentPositionIndex] - bot.getMotorPosition("arm"), 0.7, true);
     }
 
     private void loopGamepad1(){
@@ -186,14 +187,19 @@ public class Drive extends OpMode {
             }
         }
         // Change launcher speed
-        double speedIncrement = 0.05;
+//        double speedIncrement = 0.05;
+//        if(dpadRightHit){
+//            if(launcherSpeed < 1 - speedIncrement) launcherSpeed += speedIncrement;
+//        }else if(dpadLeftHit){
+//            if(launcherSpeed > speedIncrement) launcherSpeed -= speedIncrement;
+//        }
+//        if((dpadRightHit || dpadLeftHit) && bot.getMotorPower("launcher") > 0){
+//            bot.moveDcMotor("launcher", launcherSpeed);
+//        }
         if(dpadRightHit){
-            if(launcherSpeed < 1 - speedIncrement) launcherSpeed += speedIncrement;
+            launcherSpeed=0.68;
         }else if(dpadLeftHit){
-            if(launcherSpeed > speedIncrement) launcherSpeed -= speedIncrement;
-        }
-        if((dpadRightHit || dpadLeftHit) && bot.getMotorPower("launcher") > 0){
-            bot.moveDcMotor("launcher", launcherSpeed);
+            launcherSpeed=0.6;
         }
         telemetry.addData("Launcher speed", 100*launcherSpeed + "%");
 
