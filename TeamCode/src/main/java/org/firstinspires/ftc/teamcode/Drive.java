@@ -35,7 +35,7 @@ public class Drive extends OpMode {
     private boolean flipperClosed = false;
 
     private double offset = -60;
-    private double[] armPositions = new double[]{35 + offset, -45 + offset, -90 + offset};
+    private double[] armPositions = new double[]{27 + offset, -45 + offset, -90 + offset};
     private int currentPositionIndex = 0;
 
     public void init(){
@@ -200,6 +200,9 @@ public class Drive extends OpMode {
             launcherSpeed=0.68;
         }else if(dpadLeftHit){
             launcherSpeed=0.6;
+        }
+        if((dpadRightHit || dpadLeftHit) && bot.getMotorPower("launcher") > 0){
+            bot.moveDcMotor("launcher", launcherSpeed);
         }
         telemetry.addData("Launcher speed", 100*launcherSpeed + "%");
 
