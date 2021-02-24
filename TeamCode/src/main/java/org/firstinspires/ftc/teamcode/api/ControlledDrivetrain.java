@@ -67,11 +67,12 @@ public class ControlledDrivetrain extends Drivetrain implements Runnable {
     public ControlledDrivetrain(DcMotorX mRF, DcMotorX mLF, DcMotorX mRB, DcMotorX mLB, Odometry positionTracker, double xThreshold, double yThreshold, double phiThreshold, double[] Kp, double[] Ki, double[] Kd, int cycleTime){
         super(mRF, mLF, mRB, mLB);
 
+        /*
         mRF.runWithoutEncoder();
         mLF.runWithoutEncoder();
         mRB.runWithoutEncoder();
         mLB.runWithoutEncoder();
-
+        */
         // Add the position tracker and start the target coordinates at the initial reading
         this.positionTracker = positionTracker;
 

@@ -41,6 +41,7 @@ public class PositionControlTest extends LinearOpMode {
 
         // Instantiate the PID-controlled drivetrain
         drivetrain = new ControlledDrivetrain(mRF, mLF, mRB, mLB, positionTracker);
+        drivetrain.reverse();
         // Run it in a separate thread
         Thread drivetrainThread = new Thread(drivetrain);
 
@@ -55,7 +56,7 @@ public class PositionControlTest extends LinearOpMode {
         drivetrain.setPosition(0, TILE_SIZE*3, 0);
         // Wait for the robot to get to the target position
 
-        drivetrain.drive(0.5,0,0);
+        drivetrain.drive(0.5,1,0);
 
         while(!isStopRequested()) logErrors();
         drivetrain.setActive(false);
@@ -70,6 +71,8 @@ public class PositionControlTest extends LinearOpMode {
         telemetry.addData("Ex:", drivetrain.ExL);
         telemetry.addData("Ey:", drivetrain.EyL);
         telemetry.addData("HeadingT:", drivetrain.EphiL);
+
+        telemetry.addData("mRF direction", drivetrain.mRF.core.getDirection());
 
         telemetry.update();
     }
