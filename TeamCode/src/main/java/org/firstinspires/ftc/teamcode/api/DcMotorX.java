@@ -71,6 +71,11 @@ public class DcMotorX {
         return currentPosition;
     }
 
+    public double getPositionForward(){
+        if(core.getDirection() == DcMotorSimple.Direction.REVERSE) return -getPosition();
+        else return getPosition();
+    }
+
     public void savePosition(boolean useCurrent){
         if(useCurrent) lastPosition = currentPosition;
         else lastPosition = getPosition();

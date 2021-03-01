@@ -50,10 +50,6 @@ public class Odometry implements Runnable {
         this.phi = phi0;
 
         this.actualTime = cycleTime;
-
-        lastR = wheelR.getPosition();
-        lastL = wheelL.getPosition();
-        lastB = wheelB.getPosition();
     }
 
     public double arcdS(double dR, double dL, double dphi){
@@ -82,21 +78,25 @@ public class Odometry implements Runnable {
         lastB = B;
 
         // Calculate change in heading
-        double dphi = (dR - dL) / width;
+        double dphi = (dL - dR) / width;
 
         // Use this to find linear and perpendicular motion
         double dS = arcdS(dR, dL, dphi);
-        double dP = dB + backDistancePerRadian * dphi;
+        double dP = dB - backDistancePerRadian * dphi;
 
         // Add components of the linear and perpendicular motion to update position
-        x += -dS * Math.sin(phi + dphi / 2) - dP * Math.cos(phi + dphi / 2);
-        y += -dS * Math.cos(phi + dphi / 2) + dP * Math.sin(phi + dphi / 2);
+        x += dS * Math.sin(phi + dphi/2) - dP * Math.cos(phi + dphi/2);
+        y += -dS * Math.cos(phi + dphi/2) - dP * Math.sin(phi + dphi/2);
         phi += dphi;
 
         actualTime = System.currentTimeMillis() - start;
     }
 
     public void run(){
+        lastR = wheelR.getPosition();
+        lastL = wheelL.getPosition();
+        lastB = wheelB.getPosition();
+
         // Run the thread indefinitely
         while(isRunning){
             // Update position coordinate

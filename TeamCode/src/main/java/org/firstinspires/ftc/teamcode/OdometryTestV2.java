@@ -24,7 +24,7 @@ public class OdometryTestV2 extends OpMode {
     private int ticksPerRev = 8192;
 
     private double width = 40.8;
-    private double backDistancePerRadian = -41.577/(2*Math.PI);
+    private double backDistancePerRadian = 41.577/(2*Math.PI);
 
     private double x0 = 0;
     private double y0 = 0;

@@ -11,11 +11,11 @@ import org.firstinspires.ftc.teamcode.api.Odometry;
 public class PositionControlTest extends LinearOpMode {
 
     // Encoder wheel information
-    private double circumference = 10;
-    private int ticksPerRev = 280;
+    private double circumference = 15.71;
+    private int ticksPerRev = 8192;
     // Robot width and back encoder wheel ticks per degree
     private double width = 30;
-    private double backDistancePerDegree = 0;
+    private double backDistancePerDegree = -41.577/(2*Math.PI);
     // Initial position
     private double x0 = 0;
     private double y0 = 0;
@@ -27,8 +27,8 @@ public class PositionControlTest extends LinearOpMode {
 
     public void runOpMode(){
         // Get all of the drivetrain motors
-        DcMotorX mRF= new DcMotorX(hardwareMap.dcMotor.get("mRF")),
-                mLF = new DcMotorX(hardwareMap.dcMotor.get("mRF")),
+        DcMotorX mRF = new DcMotorX(hardwareMap.dcMotor.get("mRF")),
+                mLF = new DcMotorX(hardwareMap.dcMotor.get("mLF")),
                 mRB = new DcMotorX(hardwareMap.dcMotor.get("mRB")),
                 mLB = new DcMotorX(hardwareMap.dcMotor.get("mLB"));
         // Get the odometry wheels
@@ -37,11 +37,12 @@ public class PositionControlTest extends LinearOpMode {
                 wheelB = new DcMotorX(hardwareMap.dcMotor.get("mRF"), ticksPerRev, circumference);
 
         // Create an odometry instance for the drivetrain
-        Odometry positionTracker = new Odometry(wheelR, wheelL, wheelB, 10, backDistancePerDegree, width, x0, y0, phi0);
+        Odometry positionTracker = new Odometry(wheelR, wheelL, wheelB, 50, backDistancePerDegree, width, x0, y0, phi0);
 
         // Instantiate the PID-controlled drivetrain
         drivetrain = new ControlledDrivetrain(mRF, mLF, mRB, mLB, positionTracker);
         drivetrain.reverse();
+        drivetrain.telemetry = telemetry;
         // Run it in a separate thread
         Thread drivetrainThread = new Thread(drivetrain);
 
@@ -50,31 +51,21 @@ public class PositionControlTest extends LinearOpMode {
         // Start the thread
         drivetrainThread.start();
         // Tell the drivetrain to actively correct position errors
-        drivetrain.setActive(false);
+        drivetrain.setActive(true);
 
         // Drive to (x=1 tile, y=3 tiles, heading=20 degrees)
         drivetrain.setPosition(0, TILE_SIZE*3, 0);
-        // Wait for the robot to get to the target position
 
-        drivetrain.drive(0.5,1,0);
+        try {
+            Thread.sleep(50);
+        }catch(Exception e){ }
 
-        while(!isStopRequested()) logErrors();
-        drivetrain.setActive(false);
+        while(!isStopRequested() && drivetrain.isBusy());
+
+        drivetrain.setBrake(true);
         drivetrain.stop();
-    }
-
-    public void logErrors(){
-        telemetry.addData("x:", drivetrain.positionTracker.x);
-        telemetry.addData("y:", drivetrain.positionTracker.y);
-        telemetry.addData("Heading:", drivetrain.positionTracker.phi);
-
-        telemetry.addData("Ex:", drivetrain.ExL);
-        telemetry.addData("Ey:", drivetrain.EyL);
-        telemetry.addData("HeadingT:", drivetrain.EphiL);
-
-        telemetry.addData("mRF direction", drivetrain.mRF.core.getDirection());
-
-        telemetry.update();
+        drivetrain.setActive(false);
+        drivetrain.stopController();
     }
 
 }

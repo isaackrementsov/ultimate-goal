@@ -18,12 +18,8 @@ public class APIV2Test extends OpMode {
                 mRB = new DcMotorX(hardwareMap.dcMotor.get("mRB")),
                 mLB = new DcMotorX(hardwareMap.dcMotor.get("mLB"));
 
-        mRF.runWithoutEncoder();
-        mLF.runWithoutEncoder();
-        mRB.runWithoutEncoder();
-        mLB.runWithoutEncoder();
-
         drivetrain = new Drivetrain(mRF, mLF, mRB, mLB);
+        drivetrain.reverse();
     }
 
     public void loop(){

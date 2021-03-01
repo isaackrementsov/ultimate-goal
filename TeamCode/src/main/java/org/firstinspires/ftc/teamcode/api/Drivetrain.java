@@ -49,14 +49,14 @@ public class Drivetrain {
     }
 
     public void driveWithGamepad(double speed, double forward, double yaw, double strafe){
-        drive(speed*forward, -speed*yaw, -speed*strafe);
+        drive(speed*forward, -speed*yaw, speed*strafe);
     }
 
     public void drive(double power, double yaw, double strafe){
-        mRF.setPower(power + yaw + strafe);
-        mLF.setPower(power - yaw - strafe);
-        mRB.setPower(power + yaw - strafe);
-        mLB.setPower(power - yaw + strafe);
+        mRF.setPower(power + yaw - strafe);
+        mLF.setPower(power - yaw + strafe);
+        mRB.setPower(power + yaw + strafe);
+        mLB.setPower(power - yaw - strafe);
     }
 
     public void drive(double power, Direction direction){
