@@ -114,6 +114,18 @@ public class Odometry implements Runnable {
 
     }
 
+    public void reset(){
+        x = 0;
+        y = 0;
+        phi = 0;
+    }
+
+    public void reset(double... coords){
+        x = coords[0];
+        y = coords[1];
+        phi = coords[2];
+    }
+
     // Stop the thread
     public void stop(){ isRunning = false; }
 }

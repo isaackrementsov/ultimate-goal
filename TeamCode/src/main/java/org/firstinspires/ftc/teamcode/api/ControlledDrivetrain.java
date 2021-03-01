@@ -117,12 +117,12 @@ public class ControlledDrivetrain extends Drivetrain implements Runnable {
         // Speed at which the robot should rotate (change its heading)
         double dphidt = Cphi;
 
-        telemetry.addData("Setpoint (deg)", phiT*(180/Math.PI));
+        /*telemetry.addData("Setpoint (deg)", phiT*(180/Math.PI));
         telemetry.addData("Current reading (deg)", positionTracker.phi*(180/Math.PI));
         telemetry.addData("E", Ephi);
         telemetry.addData("IE", IEphi);
         telemetry.addData("dEdt", dEphidt);
-        telemetry.update();
+        telemetry.update();*/
 
         // Drive the robot in the correct direction and at the correct speed
         // Only correct the robot's position when active
@@ -140,10 +140,10 @@ public class ControlledDrivetrain extends Drivetrain implements Runnable {
     }
 
     // Set a target position
-    public void setPosition(double x, double y, double phi){
-        xT = x;
-        yT = y;
-        phiT = phi;
+    public void setPosition(double... coords){
+        xT = coords[0];
+        yT = coords[1];
+        phiT = coords[2];
 
         // Get initial error measurements
         ExL = xT - positionTracker.x;
@@ -191,4 +191,7 @@ public class ControlledDrivetrain extends Drivetrain implements Runnable {
 
     // Activate/deactive position correction
     public void setActive(boolean active){ this.active = active; }
+
+    // Show whether positon correction
+    public boolean getActive(){ return active; }
 }
