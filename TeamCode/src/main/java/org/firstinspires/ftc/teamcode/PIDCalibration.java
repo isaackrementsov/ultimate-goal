@@ -19,15 +19,15 @@ public class PIDCalibration extends OpMode {
     private double backDistancePerDegree = 41.577/(2*Math.PI);
 
     // Size of a tile on the field (in cm)
-    private final double TILE_SIZE = 60.95;
+    private final double TILE_SIZE = 59.69;
 
     // Calibration parameters
-    private double Kp = 40;
-    private double Ki = 0;
-    private double Kd = 25;
+    private double Kp = 3.01;
+    private double Ki = 2e-17;
+    private double Kd = 0.304;
 
     // For editing coeffients in the OpMode
-    private double increment = 1;
+    private int multiplier = 0;
     private int editingIdx = 0;
     private String[] editingOptions = new String[]{"Kp", "Kd", "Ki"};
 
@@ -71,8 +71,14 @@ public class PIDCalibration extends OpMode {
     }
 
     public void loop(){
+        double leftX = gamepad1.left_stick_x;
+        double rightX = gamepad1.right_stick_x;
+        double rightY = -gamepad1.right_stick_y; // Reads negative from the controller
+
         boolean dpadUp = gamepad1.dpad_up;
         boolean dpadDown = gamepad1.dpad_down;
+        boolean dpadRight = gamepad1.dpad_right;
+        boolean dpadLeft = gamepad1.dpad_left;
         boolean a = gamepad1.a;
         boolean b = gamepad1.b;
         boolean x = gamepad1.x;
@@ -82,21 +88,29 @@ public class PIDCalibration extends OpMode {
         boolean xHit = x && !lastButtons.x;
         boolean dpadUpHit = dpadUp && !lastDpads.dpad_up;
         boolean dpadDownHit = dpadDown && !lastDpads.dpad_down;
+        boolean dpadRightHit = dpadRight && !lastDpads.dpad_right;
+        boolean dpadLeftHit = dpadLeft && !lastDpads.dpad_left;
 
         // Stop position control
         if(bHit){
             drivetrain.setActive(false);
-            drivetrain.setBrake(true);
             drivetrain.stop();
         }
 
-        if(!drivetrain.getActive()){
-
+        if(drivetrain.getActive()) {
+            telemetry.addData("Setpoint", setpoint);
+            telemetry.addData("Mode index", getModeIndex());
+            telemetry.addData("x", drivetrain.positionTracker.x);
+            telemetry.addData("y", drivetrain.positionTracker.y);
+            telemetry.addData("Heading", drivetrain.positionTracker.phi);
+        }else{
             // Start/restart position control
             if(aHit){
-                drivetrain.setBrake(false);
-                drivetrain.setActive(true);
                 drivetrain.positionTracker.reset();
+                drivetrain.stop();
+
+                setPosition();
+                drivetrain.setActive(true);
             }
 
             // Select a coefficient to edit
@@ -105,29 +119,39 @@ public class PIDCalibration extends OpMode {
             }
 
             // Increment selected coefficient
-            if(dpadUpHit) editCoefficients(increment);
-            else if(dpadDownHit) editCoefficients(-increment);
+            if(dpadUpHit) editCoefficients(Math.pow(10, multiplier));
+            else if(dpadDownHit) editCoefficients(-Math.pow(10, multiplier));
+
+            // Multiply increments by 10^multiplier for fine/coarse tuning
+            if(dpadRightHit) multiplier++;
+            else if(dpadLeftHit) multiplier--;
+
+            // Allow for manual driving
+            if(Math.abs(leftX) > .1 || Math.abs(rightX) > .1 || Math.abs(rightY) > .1){
+                drivetrain.driveWithGamepad(0.5, rightY, leftX, rightX);
+            }else{
+                drivetrain.stop();
+            }
 
             // Log current coefficient values
             telemetry.addData("Currently editing", editingOptions[editingIdx]);
+            telemetry.addData("Increment size", Math.pow(10, multiplier));
             telemetry.addData("Kp", Kp);
             telemetry.addData("Ki", Ki);
             telemetry.addData("Kd", Kd);
         }
 
-        lastDpads.update(dpadUp, dpadDown, false, false);
+        lastDpads.update(dpadUp, dpadDown, dpadRight, dpadLeft);
         lastButtons.update(a, b, x, false);
     }
 
     public void stop(){
         drivetrain.setActive(false);
-        drivetrain.setBrake(true);
         drivetrain.stop();
         drivetrain.stopController();
     }
 
     private void initializeCoefficients(){
-        drivetrain.Kp = drivetrain.Kd = drivetrain.Ki = new double[]{0,0,0};
         int i = getModeIndex();
 
         drivetrain.Kp[i] = Kp;
@@ -139,6 +163,8 @@ public class PIDCalibration extends OpMode {
         if(editingIdx == 0) Kp += change;
         if(editingIdx == 1) Kd += change;
         if(editingIdx == 2) Ki += change;
+
+        initializeCoefficients();
     }
 
     private void setPosition(){

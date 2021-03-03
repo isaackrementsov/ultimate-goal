@@ -22,7 +22,7 @@ public class AutonOdometry extends LinearOpMode {
     private Robot bot;
 
     // Odometry parameters
-    private int ticksPerRev = 767;
+    private int ticksPerRev = 8192;
     private double circumference = 15.71;
     private double width = 40.8;
     private double backDistancePerRadian = -41.577/(2*Math.PI);
@@ -36,38 +36,34 @@ public class AutonOdometry extends LinearOpMode {
 
     private final double TILE_SIZE = 60.96;
 
-    private double LOW_POWER = 0.5;
-    private double HIGH_POWER = 1;
-
     // Arm starting position
     private double offset = -60;
-    // Where the robot starts (in tiles from the right wall)
-    private double STARTING_POS = 2.5;
-    private double DETECTION_POS = 0.5;
-    private double SHOOTING_POS = 0.55;
+    // Where the robot starts (in cm from the right wall)
+    private double x0 = 112.395;
+    private double y0 = 0;
+    private double phi0 = 0;
+    private double DETECTION_POS = 0.5*TILE_SIZE;
+    private double SHOOTING_POS = 0.55*TILE_SIZE;
 
     @Override
     public void runOpMode() throws InterruptedException {
         // Get all of the drivetrain motors
-        DcMotorX mRF= new DcMotorX(hardwareMap.dcMotor.get("mRF")),
-                mLF = new DcMotorX(hardwareMap.dcMotor.get("mRF")),
+        DcMotorX mRF = new DcMotorX(hardwareMap.dcMotor.get("mRF")),
+                mLF = new DcMotorX(hardwareMap.dcMotor.get("mLF")),
                 mRB = new DcMotorX(hardwareMap.dcMotor.get("mRB")),
                 mLB = new DcMotorX(hardwareMap.dcMotor.get("mLB"));
-
         // Get the odometry wheels
-        DcMotorX wheelR = new DcMotorX(hardwareMap.dcMotor.get("wheelR"), ticksPerRev, circumference),
-                wheelL = new DcMotorX(hardwareMap.dcMotor.get("wheelL"), ticksPerRev, circumference),
-                wheelB = new DcMotorX(hardwareMap.dcMotor.get("wheelB"), ticksPerRev, circumference);
+        DcMotorX wheelR = new DcMotorX(hardwareMap.dcMotor.get("mRB"), ticksPerRev, circumference),
+                wheelL = new DcMotorX(hardwareMap.dcMotor.get("mLF"), ticksPerRev, circumference),
+                wheelB = new DcMotorX(hardwareMap.dcMotor.get("mRF"), ticksPerRev, circumference);
 
         // Create an odometry instance for the drivetrain
-        Odometry positionTracker = new Odometry(
-                wheelR, wheelL, wheelB,
-                10,
-                backDistancePerRadian, width,
-                STARTING_POS*TILE_SIZE, 0, 0
-        );
+        Odometry positionTracker = new Odometry(wheelR, wheelL, wheelB, 50, backDistancePerRadian, width, x0, y0, phi0);
+
         // Instantiate the PID-controlled drivetrain
         drivetrain = new ControlledDrivetrain(mRF, mLF, mRB, mLB, positionTracker);
+        drivetrain.reverse();
+        drivetrain.telemetry = telemetry;
         // Run it in a separate thread
         Thread drivetrainThread = new Thread(drivetrain);
 
@@ -96,8 +92,7 @@ public class AutonOdometry extends LinearOpMode {
 
         // Start the thread
         drivetrainThread.start();
-        // Tell the drivetrain to actively correct position errors
-        drivetrain.setActive(true);
+
 
         // Zero arm position
         bot.resetLimitedMotor("arm", 0.2);
@@ -111,13 +106,18 @@ public class AutonOdometry extends LinearOpMode {
             telemetry.update();
 
             // Park the robot on the launch line based on where it is after driving to target zone
-            double[] directions = driveToTargetZone(zone);
-            goBehindLine(directions);
+            driveToTargetZone(zone);
+            goBehindLine();
 
             // Shoot 3 rings
             shoot();
 
             bot.shutDownCV();
+
+            drivetrain.setBrake(true);
+            drivetrain.stop();
+            drivetrain.setActive(false);
+            drivetrain.stopController();
         }
     }
 
@@ -125,15 +125,15 @@ public class AutonOdometry extends LinearOpMode {
         // Number of rings in the starter stack
         int stackedRings = 0;
 
-        drivetrain.setPosition(0,0,0);
-        bot.drive(0.2, DETECTION_POS*TILE_SIZE, Robot.Direction.FORWARD);
+        // Drive to detection area
+        setPositionAndWait(TILE_SIZE, DETECTION_POS,0);
 
         // Define time that the robot should be done looking at the stack
         long t = System.currentTimeMillis();
         long end = t + waitTime;
 
         // Continue checking for rings until the time runs out or stacked rings are detected
-        while(System.currentTimeMillis() < end && stackedRings == 0){
+        while(System.currentTimeMillis() < end && stackedRings == 0 && !isStopRequested()){
             // Get updated object recognition data from TensorFlow
             try {
                 Recognition quad = bot.recognize(QUAD_LABEL);
@@ -163,49 +163,23 @@ public class AutonOdometry extends LinearOpMode {
         }
     }
 
-    private double[] driveToTargetZone(char zone){
-        double driveBackward = 0;
-        double driveLeft = 0;
-
+    private void driveToTargetZone(char zone){
         // Shift outward from the starter stack to avoid hitting it
-        bot.drive(LOW_POWER, TILE_SIZE*(3 - STARTING_POS), Robot.Direction.LEFT);
-        bot.drive(LOW_POWER, TILE_SIZE*(3 - DETECTION_POS), Robot.Direction.FORWARD);
+        setPositionAndWait(2*TILE_SIZE, 2*TILE_SIZE, 0);
 
         switch(zone){
             case 'a':
-                driveBackward = 0.4;
-                driveLeft = 1.2;
-
-                bot.drive(LOW_POWER, driveLeft*TILE_SIZE, Robot.Direction.RIGHT);
-
-                break;
+                setPositionAndWait(TILE_SIZE, 3*TILE_SIZE, 0);
             case 'b':
-                driveBackward = 1.2;
-                driveLeft = 0.2;
-
-                bot.drive(LOW_POWER, driveBackward*TILE_SIZE, Robot.Direction.FORWARD);
-                bot.drive(LOW_POWER, driveLeft*TILE_SIZE, Robot.Direction.RIGHT);
-
-                break;
+                setPositionAndWait(2*TILE_SIZE, 4*TILE_SIZE, 0);
             case 'c':
-                driveBackward = 2;
-                driveLeft = 1.2;
-
-                bot.drive(LOW_POWER, driveBackward*TILE_SIZE, Robot.Direction.FORWARD);
-                bot.drive(LOW_POWER, driveLeft*TILE_SIZE, Robot.Direction.RIGHT);
-
-                break;
+                setPositionAndWait(TILE_SIZE, 5*TILE_SIZE, 0);
         }
 
         dropWobbleGoal();
-
-        // Directions to go behind line before shooting
-        return new double[]{driveBackward + SHOOTING_POS, driveLeft - 0.45};
     }
 
     private void dropWobbleGoal(){
-        bot.stop();
-
         // Drop and release the wobble goal
         bot.moveDcMotor("arm", -90 + offset, 0.7, false);
         bot.rotateServo("claw", 100, 250);
@@ -213,14 +187,8 @@ public class AutonOdometry extends LinearOpMode {
         bot.moveToStaticPosition("arm", 0, 0.7, false);
     }
 
-    private void goBehindLine(double[] directions){
-        double driveBackward = directions[0];
-        double driveLeft = directions[1];
-
-        bot.drive(LOW_POWER, TILE_SIZE*driveBackward, Robot.Direction.BACKWARD);
-        bot.drive(LOW_POWER, TILE_SIZE*driveLeft, Robot.Direction.LEFT);
-
-        bot.stop();
+    private void goBehindLine(){
+        setPositionAndWait(TILE_SIZE, 2*TILE_SIZE, 0);
     }
 
     private void shoot(){
@@ -233,6 +201,21 @@ public class AutonOdometry extends LinearOpMode {
         }
 
         bot.moveDcMotor("launcher", 0);
-        bot.drive(LOW_POWER, (SHOOTING_POS + 0.1)*TILE_SIZE, Robot.Direction.FORWARD);
+
+        setPositionAndWait(TILE_SIZE, 3*TILE_SIZE, 0);
+    }
+
+    private void setPositionAndWait(double x, double y, double phi){
+        drivetrain.setActive(true);
+        // Robot is facing in reverse and x-coordinates are inverted, so use x,-y
+        drivetrain.setPosition(x, -y, phi);
+
+        try {
+            Thread.sleep(50);
+        }catch(Exception e){ }
+        while(!isStopRequested() && drivetrain.isBusy());
+
+        drivetrain.stop();
+        drivetrain.setActive(false);
     }
 }

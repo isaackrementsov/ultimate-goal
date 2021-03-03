@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -13,6 +14,7 @@ import java.io.FileWriter;
 import java.util.ArrayList;
 
 @TeleOp
+@Disabled
 public class OdometryTest extends OpMode {
 
     private Robot bot;

@@ -15,6 +15,7 @@ public class ControlledDrivetrain extends Drivetrain implements Runnable {
     public double[] Kd;
     // Time to wait between updates/cycles (in milliseconds)
     private int cycleTime;
+    private int actualTime;
     // Time that each update actually takes (in seconds), used to compute integrals/derivatives wrt time
     private double dt;
 
@@ -66,7 +67,7 @@ public class ControlledDrivetrain extends Drivetrain implements Runnable {
                 mRF, mLF, mRB, mLB,
                 positionTracker,
                 xThreshold, yThreshold, phiThreshold,
-                new double[]{0,0.8,0}, new double[]{0,0.914,0}, new double[]{0,0.466,0}, 50
+                new double[]{0.12,0.05,2.48}, new double[]{0.001,0,0.01}, new double[]{0.01209,0.012,0.14}, 50
         );
     }
 
@@ -90,11 +91,13 @@ public class ControlledDrivetrain extends Drivetrain implements Runnable {
         // Cycle time in milliseconds
         this.cycleTime = cycleTime;
         // Initially approximate dt as cycle time in seconds (it will be measured later)
-        this.dt = cycleTime * 1.0 / 1000.0;
+        this.dt = toSec(cycleTime);
     }
 
     // Main PID Control Loop
     public void update(){
+        long start = System.currentTimeMillis();
+
         // Error from target for each coordinate
         double Ex =  xT - positionTracker.x;
         double Ey = yT - positionTracker.y;
@@ -117,13 +120,6 @@ public class ControlledDrivetrain extends Drivetrain implements Runnable {
         // Speed at which the robot should rotate (change its heading)
         double dphidt = Cphi;
 
-        /*telemetry.addData("Setpoint (deg)", phiT*(180/Math.PI));
-        telemetry.addData("Current reading (deg)", positionTracker.phi*(180/Math.PI));
-        telemetry.addData("E", Ephi);
-        telemetry.addData("IE", IEphi);
-        telemetry.addData("dEdt", dEphidt);
-        telemetry.update();*/
-
         // Drive the robot in the correct direction and at the correct speed
         // Only correct the robot's position when active
         if(active) drive(dsdt, dphidt, dpdt);
@@ -137,6 +133,8 @@ public class ControlledDrivetrain extends Drivetrain implements Runnable {
         ExL = Ex;
         EyL = Ey;
         EphiL = Ephi;
+
+        actualTime = (int) (System.currentTimeMillis() - start);
     }
 
     // Set a target position
@@ -149,6 +147,10 @@ public class ControlledDrivetrain extends Drivetrain implements Runnable {
         ExL = xT - positionTracker.x;
         EyL = yT - positionTracker.y;
         EphiL = phiT - positionTracker.phi;
+
+        IEx = 0;
+        IEy = 0;
+        IEphi = 0;
     }
 
     public boolean isBusy(){
@@ -159,6 +161,10 @@ public class ControlledDrivetrain extends Drivetrain implements Runnable {
         return Math.abs(Ex) > xThreshold || Math.abs(Ey) > yThreshold || Math.abs(Ephi) > phiThreshold;
     }
 
+    private double toSec(int millis){
+        return 1.0*millis/(1000.0);
+    }
+
     // Run the update() loop continuously
     public void run(){
         // Track position on a separate thread
@@ -167,19 +173,20 @@ public class ControlledDrivetrain extends Drivetrain implements Runnable {
 
         // Run the thread indefinitely
         while(isRunning){
-            double start = System.nanoTime();
-
-            try {
-                // Wait for about a hardware cycle
-                Thread.sleep(cycleTime);
-            }catch(Exception e){
-                e.printStackTrace();
-            }
-
-            // This is normally around cycleTime, but it helps to be exact
-            dt = (System.nanoTime() - start)/1e9;
-            // Update position coordinate
             update();
+
+            if(actualTime < cycleTime){
+                try {
+                    // Wait for about a hardware cycle
+                    Thread.sleep(cycleTime - actualTime);
+                }catch(Exception e){
+                    e.printStackTrace();
+                }
+
+                dt = toSec(cycleTime);
+            }else{
+                dt = toSec(actualTime);
+            }
         }
     }
 

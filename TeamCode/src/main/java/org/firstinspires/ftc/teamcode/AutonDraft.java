@@ -23,7 +23,7 @@ public class AutonDraft extends LinearOpMode {
     private final String QUAD_LABEL = "Quad";
     private final String SINGLE_LABEL = "Single";
 
-    private final double TILE_SIZE = 60.96;
+    private final double TILE_SIZE = 59.69;
 
     private double LOW_POWER = 0.5;
     private double HIGH_POWER = 1;

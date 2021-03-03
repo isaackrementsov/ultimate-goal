@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
 import org.firstinspires.ftc.teamcode.api.ControlledDrivetrain;
@@ -21,7 +22,7 @@ public class PositionControlTest extends LinearOpMode {
     private double y0 = 0;
     private double phi0 = 0;
     // Size of a tile on the field (in cm)
-    private final double TILE_SIZE = 60.95;
+    private final double TILE_SIZE = 59.69;
 
     private ControlledDrivetrain drivetrain;
 
@@ -54,7 +55,7 @@ public class PositionControlTest extends LinearOpMode {
         drivetrain.setActive(true);
 
         // Drive to (x=1 tile, y=3 tiles, heading=20 degrees)
-        drivetrain.setPosition(0, TILE_SIZE*3, 0);
+        drivetrain.setPosition(-TILE_SIZE, -TILE_SIZE*3, 0);
 
         try {
             Thread.sleep(50);

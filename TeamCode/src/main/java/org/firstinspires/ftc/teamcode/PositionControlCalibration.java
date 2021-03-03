@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
 import org.apache.commons.math3.complex.Complex;
@@ -17,6 +18,7 @@ import java.io.FileWriter;
 import java.util.ArrayList;
 
 @Autonomous
+@Disabled
 public class PositionControlCalibration extends LinearOpMode {
     // Encoder wheel information
     private double circumference = 15.71;
