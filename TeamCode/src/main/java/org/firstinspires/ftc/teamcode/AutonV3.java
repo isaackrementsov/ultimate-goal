@@ -2,22 +2,16 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.hardware.Servo;
 
-import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
-import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
 import org.firstinspires.ftc.teamcode.api.ControlledDrivetrain;
 import org.firstinspires.ftc.teamcode.api.DcMotorX;
 import org.firstinspires.ftc.teamcode.api.Odometry;
 import org.firstinspires.ftc.teamcode.api.Robot;
 
-import java.util.List;
-
 @Autonomous
-public class AutonOdometry extends LinearOpMode {
+public class AutonV3 extends LinearOpMode {
 
     private Robot bot;
 
@@ -37,13 +31,26 @@ public class AutonOdometry extends LinearOpMode {
     private final double TILE_SIZE = 60.96;
 
     // Arm starting position
-    private double offset = -60;
+    private final double offset = -60;
     // Where the robot starts (in cm from the right wall)
-    private double x0 = 112.395;
-    private double y0 = 0;
-    private double phi0 = 0;
-    private double DETECTION_POS = 0.5*TILE_SIZE;
-    private double[] SHOOTING_POS = new double[]{100.2, 148};
+    private final double x0 = 112.395;
+    private final double y0 = 0;
+    private final double phi0 = /*-0.25*Math.PI/180*/0;
+    private final double DETECTION_POS = 0.5*TILE_SIZE;
+
+    //private final double[] AVOID_STACK_POS = new double[]{3*TILE_SIZE, 2.2*TILE_SIZE};
+    //private final double[] AVOID_STACK_THRESH = new double[]{4,4,3};
+
+    private final double[] SHOOTING_POS = new double[]{100.2, 148};
+
+    private final double[] POWER_SHOTS_X = new double[]{174.6, 160.2, 135.9};
+    private final double[] POWER_SHOTS_Y = new double[]{146,150.3,153.47};
+
+    private final double[] DROP_ZONES_X = new double[]{32.55 + 10, 103.1 + 5, 43.8 + 5};
+    private final double[] DROP_ZONES_Y = new double[]{205.1, 258.9, 307.1 - 3};
+
+    private final double WOBBLE_X = 86;
+    private final double WOBBLE_Y = 44;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -76,6 +83,8 @@ public class AutonOdometry extends LinearOpMode {
         bot.addServo("flipper");
         bot.rotateServo("flipper", 50, 0);
 
+        bot.addDcMotor("intakeWheels", false);
+
         bot.addServo("claw", 270, 180, 0);
         bot.rotateServo("claw", 0, 0);
 
@@ -100,6 +109,7 @@ public class AutonOdometry extends LinearOpMode {
 
         // Zero arm position
         bot.resetLimitedMotor("arm", 0.2);
+        bot.moveDcMotor("arm", -33, 1, true);
 
         if(bot.isCVReady){
             // Determine where to deliver the Wobble Goal by looking at the starter stack
@@ -109,12 +119,23 @@ public class AutonOdometry extends LinearOpMode {
             telemetry.addData("Target Zone: ", zone);
             telemetry.update();
 
-            // Park the robot on the launch line based on where it is after driving to target zone
-            if(!isStopRequested()) driveToTargetZone(zone);
-            if(!isStopRequested()) goBehindLine();
-
             // Shoot 3 rings
-            shoot();
+            shootHighGoal();
+            // Drop wobble #1
+            driveToTargetZone(zone);
+
+            if(zone == 'c') {
+                pickUpRings();
+                shootHighGoal();
+            }else{
+                // Drive to wobble #2
+                pickUpWobble(zone);
+                // Drop wobble #2
+                driveToTargetZone(zone, 10, 15);
+            }
+
+            // Park the robot on the launch line based on where it is after driving to target zone
+            parkOverLaunchLine();
 
             bot.shutDownCV();
 
@@ -131,7 +152,7 @@ public class AutonOdometry extends LinearOpMode {
 
         // Drive to detection area
         drivetrain.setActive(true);
-        setPositionAndWait(1.3*TILE_SIZE, DETECTION_POS,0);
+        setPositionAndWait(1.25*TILE_SIZE, DETECTION_POS,0, 4, 4, 0.1);
 
         // Define time that the robot should be done looking at the stack
         long t = System.currentTimeMillis();
@@ -168,49 +189,43 @@ public class AutonOdometry extends LinearOpMode {
         }
     }
 
-    private void driveToTargetZone(char zone){
-        // Shift outward from the starter stack to avoid hitting it
-        setPositionAndWait(2*TILE_SIZE, 2.2*TILE_SIZE, 0, 4, 4, 3);
-
+    private void driveToTargetZone(char zone, double offsetX, double offsetY){
         switch(zone){
             case 'a':
-                setPositionAndWait(TILE_SIZE, 3*TILE_SIZE, 0);
+                setPositionAndWait(DROP_ZONES_X[0] + offsetX, DROP_ZONES_Y[0] - offsetY, 0);
                 break;
             case 'b':
-                setPositionAndWait(2*TILE_SIZE, 4*TILE_SIZE, 0);
+                setPositionAndWait(DROP_ZONES_X[1] + offsetX, DROP_ZONES_Y[1] - offsetY, 0);
                 break;
             case 'c':
-                setPositionAndWait(TILE_SIZE, 5*TILE_SIZE, 0);
+                setPositionAndWait(DROP_ZONES_X[2] + offsetX*2, DROP_ZONES_Y[2] - offsetY/4, 0);
                 break;
         }
 
-        drivetrain.setActive(false);
-        try {
-            Thread.sleep(50);
-        }catch(Exception e){}
-        drivetrain.stop();
-
+        pauseDrivetrain(50);
         dropWobbleGoal();
+        startDrivetrain();
+    }
 
-        drivetrain.setActive(true);
+    private void driveToTargetZone(char zone){
+        driveToTargetZone(zone, 0, 0);
     }
 
     private void dropWobbleGoal(){
         // Drop and release the wobble goal
-        bot.moveDcMotor("arm", -90 + offset, 0.7, false);
+        bot.moveDcMotor("arm", -70 + offset, 0.7, false);
         bot.rotateServo("claw", 100, 250);
         // Raise the arm
-        bot.moveToStaticPosition("arm", 35, 0.7, true);
-        while(!isStopRequested() && bot.getMotorPosition("arm") < 0);
+        bot.moveToStaticPosition("arm", -33, 0.7, true);
+        while(!isStopRequested() && bot.getMotorPosition("arm") < -40);
+
+        telemetry.addData("Current heading", drivetrain.positionTracker.phi);
+        telemetry.update();
     }
 
-    private void goBehindLine(){
-        setPositionAndWait(SHOOTING_POS[0], SHOOTING_POS[1], 0);
-    }
-
-    private void shoot(){
+    private void shootHighGoal(){
         bot.moveDcMotor("launcher", 0.67);
-        bot.waitMillis(1000);
+        setPositionAndWait(SHOOTING_POS[0], SHOOTING_POS[1], 0);
 
         for(int i = 0; i < 3; i++){
             bot.rotateServo("flipper", 25, 250);
@@ -218,17 +233,71 @@ public class AutonOdometry extends LinearOpMode {
         }
 
         bot.moveDcMotor("launcher", 0);
+    }
 
-        setPositionAndWait(TILE_SIZE, 3*TILE_SIZE, 0);
+    private void shootPowerShots(){
+        // Power on the launcher
+        bot.moveDcMotor("launcher", 0.6);
+        bot.waitMillis(200);
+
+        for(int i = 0; i < POWER_SHOTS_X.length; i++){
+            setPositionAndWait(POWER_SHOTS_X[i], POWER_SHOTS_Y[i], 0);
+            fire();
+        }
+
+        bot.moveDcMotor("launcher", 0);
+    }
+
+    private void fire(){
+        pauseDrivetrain(50);
+        bot.rotateServo("flipper", 25, 250);
+        bot.rotateServo("flipper", 50, 500);
+        startDrivetrain();
+    }
+
+    private void pickUpRings(){
+        // Pick up some of the ring stack
+        bot.moveDcMotor("intakeWheels", 1);
+
+        setPositionAndWait(WOBBLE_X, WOBBLE_Y, 0);
+        bot.moveDcMotor("intakeWheels", 0);
+    }
+
+    private void pickUpWobble(char zone){
+        // Whether or not the robot is going to drive over rings
+        boolean ringStack = zone != 'a';
+
+        // Pick up some of the ring stack
+        if(ringStack) bot.moveDcMotor("intakeWheels", 1);
+
+        setPositionAndWait(WOBBLE_X, WOBBLE_Y + 0.5*TILE_SIZE, 0);
+        pauseDrivetrain(50);
+        // Raise the arm
+        bot.moveDcMotor("arm", -70 + offset, 0.7, false);
+        // Avoid taking in a 4th ring
+        if(ringStack) bot.moveDcMotor("intakeWheels", 0);
+        startDrivetrain();
+
+        // Drive to wobble
+        setPositionAndWait(WOBBLE_X, WOBBLE_Y, 0);
+        bot.rotateServo("claw", 100, 250);
+        pauseDrivetrain(50);
+        // Raise the arm
+        bot.rotateServo("claw", 0, 250);
+        bot.moveToStaticPosition("arm", -33, 0.8, true);
+
+        while(!isStopRequested() && bot.getMotorPosition("arm") < -40);
+        startDrivetrain();
+    }
+
+    private void parkOverLaunchLine(){
+        setPositionAndWait(drivetrain.positionTracker.x, 3*TILE_SIZE, 0);
     }
 
     private void setPositionAndWait(double x, double y, double phi, double xThresh, double yThresh, double phiThresh){
         // Robot is facing in reverse and x-coordinates are inverted, so use x,-y
         drivetrain.setPosition(x, -y, phi);
-
-        try {
-            Thread.sleep(50);
-        }catch(Exception e){ }
+        sleep(50);
         while(!isStopRequested() && drivetrain.isBusy(xThresh, yThresh, phiThresh));
 
         drivetrain.stop();
@@ -237,12 +306,26 @@ public class AutonOdometry extends LinearOpMode {
     private void setPositionAndWait(double x, double y, double phi){
         // Robot is facing in reverse and x-coordinates are inverted, so use x,-y
         drivetrain.setPosition(x, -y, phi);
-
-        try {
-            Thread.sleep(50);
-        }catch(Exception e){ }
+        sleep(50);
         while(!isStopRequested() && drivetrain.isBusy());
-
         drivetrain.stop();
+    }
+
+    private void setPosition(double x, double y, double phi){
+        drivetrain.setPosition(x,y,phi);
+    }
+
+    private void sleep(int wait){
+        try { Thread.sleep(wait); }catch(Exception e){ }
+    }
+
+    private void pauseDrivetrain(int wait){
+        drivetrain.setActive(false);
+        sleep(wait);
+        drivetrain.stop();
+    }
+
+    private void startDrivetrain(){
+        drivetrain.setActive(true);
     }
 }

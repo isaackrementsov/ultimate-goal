@@ -55,7 +55,7 @@ public class ControlledDrivetrain extends Drivetrain implements Runnable {
         this(
                 mRF, mLF, mRB, mLB,
                 positionTracker,
-                2, 2, 1
+                2, 2, 2*Math.PI/180
         );
     }
 
@@ -153,12 +153,16 @@ public class ControlledDrivetrain extends Drivetrain implements Runnable {
         IEphi = 0;
     }
 
-    public boolean isBusy(){
+    public boolean isBusy(double xThresh, double yThresh, double phiThres){
         double Ex = xT - positionTracker.x;
         double Ey = yT - positionTracker.y;
         double Ephi = phiT - positionTracker.phi;
 
-        return Math.abs(Ex) > xThreshold || Math.abs(Ey) > yThreshold || Math.abs(Ephi) > phiThreshold;
+        return Math.abs(Ex) > xThresh || Math.abs(Ey) > yThresh || Math.abs(Ephi) > phiThres;
+    }
+
+    public boolean isBusy(){
+        return isBusy(xThreshold, yThreshold, phiThreshold);
     }
 
     private double toSec(int millis){

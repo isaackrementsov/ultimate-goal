@@ -58,8 +58,11 @@ public class PIDCalibration extends OpMode {
 
         // Instantiate the PID-controlled drivetrain
         drivetrain = new ControlledDrivetrain(mRF, mLF, mRB, mLB, positionTracker);
+        // Reverse the drivetrain (between left/right wheels are on backward)
         drivetrain.reverse();
+        // Adding logging to drivetrain (only needed for development)
         drivetrain.telemetry = telemetry;
+        // Start with the drivetrain off
         drivetrain.setActive(false);
         // Run it on a separate thread
         Thread drivetrainThread = new Thread(drivetrain);
@@ -67,10 +70,12 @@ public class PIDCalibration extends OpMode {
 
         // Apply predefined settings
         initializeCoefficients();
+        // Register setpoint with the ControlledDrivetrain
         setPosition();
     }
 
     public void loop(){
+        // Get controller inputs
         double leftX = gamepad1.left_stick_x;
         double rightX = gamepad1.right_stick_x;
         double rightY = -gamepad1.right_stick_y; // Reads negative from the controller
@@ -98,6 +103,7 @@ public class PIDCalibration extends OpMode {
         }
 
         if(drivetrain.getActive()) {
+            // If a test is running, log tracking information
             telemetry.addData("Setpoint", setpoint);
             telemetry.addData("Mode index", getModeIndex());
             telemetry.addData("x", drivetrain.positionTracker.x);
@@ -106,10 +112,12 @@ public class PIDCalibration extends OpMode {
         }else{
             // Start/restart position control
             if(aHit){
+                // Reset odometry and stop the drivetrain
                 drivetrain.positionTracker.reset();
                 drivetrain.stop();
-
+                // setPosition must be called repeatedly to clear the error integrals
                 setPosition();
+                // Turn the controller on to start testing
                 drivetrain.setActive(true);
             }
 
@@ -141,6 +149,7 @@ public class PIDCalibration extends OpMode {
             telemetry.addData("Kd", Kd);
         }
 
+        // Update past controller states
         lastDpads.update(dpadUp, dpadDown, dpadRight, dpadLeft);
         lastButtons.update(a, b, x, false);
     }
@@ -168,6 +177,7 @@ public class PIDCalibration extends OpMode {
     }
 
     private void setPosition(){
+        // Create and register the setpoint
         double[] coords = new double[]{0,0,0};
         coords[getModeIndex()] = setpoint;
         drivetrain.setPosition(coords);
