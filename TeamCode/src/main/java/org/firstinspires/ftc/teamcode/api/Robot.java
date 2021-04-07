@@ -21,6 +21,7 @@ package org.firstinspires.ftc.teamcode.api;
 import android.sax.StartElementListener;
 import android.text.method.Touch;
 
+import com.google.gson.internal.$Gson$Preconditions;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
 import com.qualcomm.robotcore.hardware.ColorSensor;
@@ -45,6 +46,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -937,10 +939,13 @@ public class Robot {
     public Recognition recognize(String label) throws CVInitializationException {
         if(isCVReady){
             Recognition matched = null;
-            List<Recognition> recognitions = tfod.getUpdatedRecognitions();
+            List<Recognition> updated = tfod.getUpdatedRecognitions();
 
-            if(recognitions != null){
-                for(Recognition recognition : recognitions){
+            if(updated != null){
+                List<Recognition> recognitions = tfod.getRecognitions();
+                if(recognitions != null) updated.addAll(recognitions);
+
+                for(Recognition recognition : updated){
                     if(recognition.getLabel().equals(label)){
                         matched = recognition;
                         break;

@@ -40,6 +40,8 @@ public class DriveV2 extends OpMode {
     private double[] armPositions = new double[]{27 + offset, -45 + offset, -90 + offset};
     private int currentPositionIndex = 0;
 
+    private boolean moveForward = false;
+
     private double zeroPositionX = 195.95;
     private double zeroPositionY = -159.4;
 
@@ -135,7 +137,12 @@ public class DriveV2 extends OpMode {
             bot.rotateServo("indicator", 70 - 20*shootingIndex, 0);
             launcherSpeed = shootingSpeeds[shootingIndex];
         }else if(dpadDownHit){
-            drivetrain.setPosition(shootingPositionsX[shootingIndex], shootingPositionsY[shootingIndex], getClosestAngleToZero());
+            drivetrain.setPosition(
+                    shootingPositionsX[shootingIndex],
+                    shootingPositionsY[shootingIndex],
+                    getClosestAngleToZero(drivetrain.positionTracker.phi)
+            );
+
             drivetrain.setActive(true);
         }
 
@@ -175,12 +182,25 @@ public class DriveV2 extends OpMode {
             if(currentPositionIndex < armPositions.length - 1) currentPositionIndex++;
             else currentPositionIndex = 0;
 
-            bot.moveDcMotor("arm", armPositions[currentPositionIndex] - bot.getMotorPosition("arm"), maxSpeed, true);
+            double pos = armPositions[currentPositionIndex];
+
+            if(currentPositionIndex == 0){
+                pos += -offset - 10;
+                moveForward = true;
+            }
+
+            bot.moveDcMotor("arm", pos - bot.getMotorPosition("arm"), maxSpeed, true);
         }
         // (Optional) custom controller
         else{
             double error = bot.getTargetPosition("arm") - bot.getMotorPosition("arm");
+            telemetry.addData("Arm error:", error);
             double threshold = 2;
+
+            if(Math.abs(error) < threshold && moveForward){
+                bot.moveDcMotor("arm", armPositions[currentPositionIndex] - bot.getMotorPosition("arm"), maxSpeed, true);
+                moveForward = false;
+            }
 
             bot.moveDcMotor("arm", bot.getControlledSpeed(maxSpeed, threshold, error, true));
         }
@@ -249,16 +269,14 @@ public class DriveV2 extends OpMode {
         telemetry.addData("x", drivetrain.positionTracker.x);
         telemetry.addData("y", drivetrain.positionTracker.y);
         telemetry.addData("Heading", drivetrain.positionTracker.phi);
-        telemetry.addData("Target heading", getClosestAngleToZero());
-        telemetry.addData("Is the drivetrain active?", drivetrain.getActive());
     }
 
     private double rateCurve(double input, double rate){
         return Math.pow(Math.abs(input),rate)*((input>0)?1:-1);
     }
 
-    private double getClosestAngleToZero(){
-        return Math.round(drivetrain.positionTracker.phi/2*Math.PI)*2*Math.PI;
+    private double getClosestAngleToZero(double angle){
+        return Math.round(angle/(2*Math.PI))*2*Math.PI;
     }
 
     public void stop(){
