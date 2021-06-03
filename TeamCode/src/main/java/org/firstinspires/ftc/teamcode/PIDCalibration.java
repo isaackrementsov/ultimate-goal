@@ -6,7 +6,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.api.ControlledDrivetrain;
 import org.firstinspires.ftc.teamcode.api.DcMotorX;
 import org.firstinspires.ftc.teamcode.api.Odometry;
-import org.firstinspires.ftc.teamcode.api.Robot;
+import org.firstinspires.ftc.teamcode.api.State;
 
 @TeleOp
 public class PIDCalibration extends OpMode {
@@ -39,8 +39,8 @@ public class PIDCalibration extends OpMode {
     // Controller for tuning
     private ControlledDrivetrain drivetrain;
     // Saved button states
-    private Robot.ButtonState lastButtons = new Robot.ButtonState();
-    private Robot.DpadState lastDpads = new Robot.DpadState();
+    private State.Buttons lastButtons = new State.Buttons();
+    private State.Dpad lastDpads = new State.Dpad();
 
     public void init(){
         // Get all of the drivetrain motors

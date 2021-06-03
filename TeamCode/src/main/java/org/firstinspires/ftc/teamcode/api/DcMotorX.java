@@ -35,6 +35,7 @@ public class DcMotorX {
     }
 
     public void controlPosition(){
+        core.setTargetPosition(0);
         core.setMode(DcMotor.RunMode.RUN_TO_POSITION);
     }
 
@@ -81,7 +82,7 @@ public class DcMotorX {
         else lastPosition = getPosition();
     }
 
-    public double getDisplacement(boolean useCurrent){
+    public double getDistance(boolean useCurrent){
         if(useCurrent) return currentPosition - lastPosition;
         else return getPosition() - lastPosition;
     }
@@ -95,8 +96,8 @@ public class DcMotorX {
         core.setPower(speed);
     }
 
-    public void setDisplacement(double displacement, double speed){
-        setPosition(getPosition() + displacement, speed);
+    public void setDistance(double distance, double speed){
+        setPosition(getPosition() + distance, speed);
     }
 
     public void goToPosition(double position, double speed){
@@ -106,8 +107,22 @@ public class DcMotorX {
         while(core.isBusy());
     }
 
-    public void gotToDisplacement(double displacement, double speed){
-        goToPosition(displacement + getPosition(), speed);
+    public void goToDistance(double distance, double speed){
+        goToPosition(distance + getPosition(), speed);
+    }
+
+    public static double getControlledSpeed(double maxSpeed, double threshold, double error, boolean useThreshold){
+        double speed = Math.signum(error)*maxSpeed;
+
+        if(Math.abs(error) < 2*threshold){
+            speed *= error / (2*threshold);
+        }
+
+        if(Math.abs(error) < threshold && useThreshold){
+            speed = 0;
+        }
+
+        return speed;
     }
 
     public double getTargetPosition(){

@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.api.examples.ultimategoal;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -7,13 +7,13 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.teamcode.api.ControlledDrivetrain;
 import org.firstinspires.ftc.teamcode.api.DcMotorX;
+import org.firstinspires.ftc.teamcode.api.LimitedMotorX;
 import org.firstinspires.ftc.teamcode.api.Odometry;
-import org.firstinspires.ftc.teamcode.api.Robot;
+import org.firstinspires.ftc.teamcode.api.ServoX;
+import org.firstinspires.ftc.teamcode.api.TensorFlowX;
 
 @Autonomous
-public class AutonV3 extends LinearOpMode {
-
-    private Robot bot;
+public class Auton extends LinearOpMode {
 
     // Odometry parameters
     private int ticksPerRev = 8192;
@@ -50,20 +50,40 @@ public class AutonV3 extends LinearOpMode {
     private final double[] DROP_ZONES_Y = new double[]{205.1 - 2, 258.9 + 1, 307.1 + 2.5};
 
     private final double WOBBLE_X = 89;
-
     private final double WOBBLE_Y = 42;
+
+    private DcMotorX
+        mRF,
+        mLF,
+        mRB,
+        mLB,
+        wheelR,
+        wheelL,
+        wheelB,
+        launcher,
+        intake,
+        intakeWheels;
+
+    private LimitedMotorX arm;
+
+    private ServoX
+        flipper,
+        claw;
+
+    private TensorFlowX tfod;
 
     @Override
     public void runOpMode() throws InterruptedException {
         // Get all of the drivetrain motors
-        DcMotorX mRF = new DcMotorX(hardwareMap.dcMotor.get("mRF")),
-                mLF = new DcMotorX(hardwareMap.dcMotor.get("mLF")),
-                mRB = new DcMotorX(hardwareMap.dcMotor.get("mRB")),
-                mLB = new DcMotorX(hardwareMap.dcMotor.get("mLB"));
+        mRF = new DcMotorX(hardwareMap.dcMotor.get("mRF"));
+        mLF = new DcMotorX(hardwareMap.dcMotor.get("mLF"));
+        mRB = new DcMotorX(hardwareMap.dcMotor.get("mRB"));
+        mLB = new DcMotorX(hardwareMap.dcMotor.get("mLB"));
+
         // Get the odometry wheels
-        DcMotorX wheelR = new DcMotorX(hardwareMap.dcMotor.get("mRB"), ticksPerRev, circumference),
-                wheelL = new DcMotorX(hardwareMap.dcMotor.get("mLF"), ticksPerRev, circumference),
-                wheelB = new DcMotorX(hardwareMap.dcMotor.get("mRF"), ticksPerRev, circumference);
+        wheelR = new DcMotorX(hardwareMap.dcMotor.get("mRB"), ticksPerRev, circumference);
+        wheelL = new DcMotorX(hardwareMap.dcMotor.get("mLF"), ticksPerRev, circumference);
+        wheelB = new DcMotorX(hardwareMap.dcMotor.get("mRF"), ticksPerRev, circumference);
 
         // Create an odometry instance for the drivetrain
         Odometry positionTracker = new Odometry(wheelR, wheelL, wheelB, 50, backDistancePerRadian, width, x0, y0, phi0);
@@ -73,29 +93,36 @@ public class AutonV3 extends LinearOpMode {
         drivetrain.reverse();
         drivetrain.telemetry = telemetry;
 
-        this.bot = new Robot(hardwareMap, telemetry);
-
         // Register the Wobble Arm
-        bot.addLimitedMotor("arm", "armLimit", "armLimit", 360, 3*288, true);
+        arm = new LimitedMotorX(hardwareMap.dcMotor.get("arm"), 3*288, 360);
+        arm.setLowerLimit(hardwareMap.touchSensor.get("armLimit"));
+        arm.setBrake(true);
 
-        bot.addDcMotor("launcher", false);
-        bot.runAtConstantVelocity("launcher");
+        launcher = new DcMotorX(hardwareMap.dcMotor.get("launcher"));
+        launcher.controlVelocity();
 
-        bot.addServo("flipper");
-        bot.rotateServo("flipper", 50, 0);
+        flipper = new ServoX(hardwareMap.servo.get("flipper"));
+        flipper.setAngle(50);
 
-        bot.addDcMotor("intake", true);
-        bot.addDcMotor("intakeWheels", false);
+        intake = new DcMotorX(hardwareMap.dcMotor.get("intake"));
+        intake.setBrake(true);
 
-        bot.addServo("claw", 270, 180, 0);
-        bot.rotateServo("claw", 0, 0);
+        intakeWheels = new DcMotorX(hardwareMap.dcMotor.get("intakeWheels"));
 
-        bot.initCV(
-                VUFORIA_KEY,
-                VuforiaLocalizer.CameraDirection.BACK,
-                TFOD_MODEL_ASSET,
-                new String[]{QUAD_LABEL, SINGLE_LABEL}
-        );
+        claw = new ServoX(hardwareMap.servo.get("claw"), 270, 180);
+        claw.setAngle(0);
+
+        try {
+            tfod = new TensorFlowX(
+                    TFOD_MODEL_ASSET,
+                    VUFORIA_KEY,
+                    VuforiaLocalizer.CameraDirection.BACK,
+                    new String[]{QUAD_LABEL, SINGLE_LABEL},
+                    hardwareMap
+            );
+        }catch(Exception e){
+            telemetry.addData("Error initializing TensorFlow", e);
+        }
 
         telemetry.addData("Done initializing", "");
         telemetry.update();
@@ -108,65 +135,42 @@ public class AutonV3 extends LinearOpMode {
         drivetrainThread.start();
 
         // Zero arm position
-        bot.resetLimitedMotor("arm", 0.2);
-        bot.moveDcMotor("arm", -33, 1, true);
+        arm.reset();
+        arm.goToPosition(-33, 1);
 
-        if(bot.isCVReady) {
-            // Determine where to deliver the Wobble Goal by looking at the starter stack
-            // Give the bot 2 seconds to look
-            char zone = determineTargetZone(6000);
+        // Determine where to deliver the Wobble Goal by looking at the starter stack
+        // Give the bot 2 seconds to look
+        char zone = determineTargetZone(6000);
 
-            telemetry.addData("Target Zone: ", zone);
-            telemetry.update();
+        telemetry.addData("Target Zone: ", zone);
+        telemetry.update();
 
-            // Shoot 3 rings
-            shootHighGoal(false);
-            // Drop wobble #1
-            driveToTargetZone(zone);
+        // Shoot 3 rings
+        shootHighGoal(false);
+        // Drop wobble #1
+        driveToTargetZone(zone);
 
-            // Drive to wobble #2
-            pickUpWobble(zone);
+        // Drive to wobble #2
+        pickUpWobble(zone);
 
-            if (zone == 'c') {
-                shootHighGoal(true);
-            }
-
-            // Drop wobble #2
-            driveToTargetZone(zone, 10, 15);
-
-            // Park the robot on the launch line based on where it is after driving to target zone
-            if(zone != 'b'){
-                parkOverLaunchLine(zone);
-            }
-
-            bot.shutDownCV();
-
-            drivetrain.setBrake(true);
-            drivetrain.stop();
-            drivetrain.setActive(false);
-            drivetrain.stopController();
+        if (zone == 'c') {
+            shootHighGoal(true);
         }
-    }
 
-    private void testObjectDetection(){
-        if(bot.isCVReady){
-            char zone = determineTargetZone(5000);
-            telemetry.addData("Target zone: ", zone);
-            telemetry.update();
+        // Drop wobble #2
+        driveToTargetZone(zone, 10, 15);
 
-            while(!isStopRequested()){
-                for(Recognition recognition : bot.tfod.getRecognitions()){
-                    telemetry.addData("Recognitions", recognition);
-                    telemetry.update();
-                }
-            }
-            bot.shutDownCV();
-
-            drivetrain.setBrake(true);
-            drivetrain.stop();
-            drivetrain.setActive(false);
-            drivetrain.stopController();
+        // Park the robot on the launch line based on where it is after driving to target zone
+        if(zone != 'b'){
+            parkOverLaunchLine(zone);
         }
+
+        tfod.shutdown();
+
+        drivetrain.setBrake(true);
+        drivetrain.stop();
+        drivetrain.setActive(false);
+        drivetrain.stopController();
     }
 
     private char determineTargetZone(long waitTime){
@@ -187,8 +191,8 @@ public class AutonV3 extends LinearOpMode {
 
             // Get updated object recognition data from TensorFlow
             try {
-                Recognition quad = bot.recognize(QUAD_LABEL);
-                Recognition single = bot.recognize(SINGLE_LABEL);
+                Recognition quad = tfod.recognize(QUAD_LABEL);
+                Recognition single = tfod.recognize(SINGLE_LABEL);
 
                 // Determine number of rings based on stack type detected
                 if(quad != null){
@@ -215,7 +219,7 @@ public class AutonV3 extends LinearOpMode {
         }
     }
 
-    private void driveToTargetZone(char zone, double offsetX, double offsetY){
+    private void driveToTargetZone(char zone, double offsetX, double offsetY) throws InterruptedException {
         switch(zone){
             case 'a':
                 setPositionAndWait(DROP_ZONES_X[0] + offsetX, DROP_ZONES_Y[0] - offsetY, 0);
@@ -234,14 +238,14 @@ public class AutonV3 extends LinearOpMode {
         startDrivetrain();
     }
 
-    private void driveToTargetZone(char zone){
+    private void driveToTargetZone(char zone) throws InterruptedException {
         driveToTargetZone(zone, 0, 0);
     }
 
-    private void dropWobbleGoal(char zone, boolean secondWobble){
+    private void dropWobbleGoal(char zone, boolean secondWobble) throws InterruptedException {
         // Drop and release the wobble goal
-        bot.moveDcMotor("arm", -60 + offset, 1, false);
-        bot.rotateServo("claw", 100, 250);
+        arm.setPosition(-60 + offset, 1);
+        claw.goToAngle( 100, 250);
 
         startDrivetrain();
 
@@ -249,90 +253,90 @@ public class AutonV3 extends LinearOpMode {
         pauseDrivetrain(50);
 
         // Raise the arm
-        bot.moveToStaticPosition("arm", -33, 1, true);
+        arm.goToPosition( -33, 1);
 
         if((zone == 'c' || zone == 'b') && secondWobble){
             extendRake();
         }
-        while(!isStopRequested() && bot.getMotorPosition("arm") < -40);
+        while(!isStopRequested() && arm.getPosition() < -40);
 
         startDrivetrain();
     }
 
-    private void shootHighGoal(boolean secondTime){
-        bot.moveDcMotor("launcher", 0.67);
+    private void shootHighGoal(boolean secondTime) throws InterruptedException {
+        launcher.setVelocity(0.67);
         if(!secondTime) setPositionAndWait(SHOOTING_POS[0] + 12, SHOOTING_POS[1], 0, 3, 5, 0.1);
         setPositionAndWait(SHOOTING_POS[0], SHOOTING_POS[1], 0);
 
         for(int i = 0; i < 3; i++){
-            bot.rotateServo("flipper", 25, 250);
-            bot.rotateServo("flipper", 50, 500);
+            flipper.goToAngle( 25, 250);
+            flipper.goToAngle(50, 500);
         }
 
-        bot.moveDcMotor("launcher", 0);
+        launcher.setVelocity(0);
     }
 
-    private void shootPowerShots(){
+    private void shootPowerShots() throws InterruptedException {
         // Power on the launcher
-        bot.moveDcMotor("launcher", 0.6);
-        bot.waitMillis(200);
+        launcher.setVelocity(0.6);
+        Thread.sleep(200);
 
         for(int i = 0; i < POWER_SHOTS_X.length; i++){
             setPositionAndWait(POWER_SHOTS_X[i], POWER_SHOTS_Y[i], 0);
             fire();
         }
 
-        bot.moveDcMotor("launcher", 0);
+        launcher.setVelocity(0);
     }
 
-    private void fire(){
+    private void fire() throws InterruptedException {
         pauseDrivetrain(50);
-        bot.rotateServo("flipper", 25, 250);
-        bot.rotateServo("flipper", 50, 500);
+        flipper.goToAngle(25, 250);
+        flipper.goToAngle( 50, 500);
         startDrivetrain();
     }
 
     private void pickUpRings(){
         // Pick up some of the ring stack
-        bot.moveDcMotor("intakeWheels", 1);
+        intakeWheels.setPower(1);
 
         setPositionAndWait(WOBBLE_X, WOBBLE_Y, 0);
-        bot.moveDcMotor("intakeWheels", 0);
+        intakeWheels.setPower(0);
     }
 
-    private void pickUpWobble(char zone){
+    private void pickUpWobble(char zone) throws InterruptedException {
         // Whether or not the robot is going to drive over rings
         boolean ringStack = zone != 'a';
 
         // Pick up some of the ring stack
-        if(ringStack) bot.moveDcMotor("intakeWheels", 1);
+        if(ringStack) intakeWheels.setPower(1);
 
         setPositionAndWait(WOBBLE_X, WOBBLE_Y + 0.5*TILE_SIZE, 0);
 
         pauseDrivetrain(50);
         // Raise the arm
-        bot.moveDcMotor("arm", -60 + offset, 1, false);
+        arm.setPosition( -60 + offset, 1);
         // Avoid taking in a 4th ring
         startDrivetrain();
 
         // Drive to wobble
         setPositionAndWait(WOBBLE_X, WOBBLE_Y, 0);
-        bot.rotateServo("claw", 100, 250);
+        claw.goToAngle(100, 250);
         pauseDrivetrain(50);
 
         // Raise the arm
-        bot.rotateServo("claw", 0, 200);
-        bot.moveToStaticPosition("arm", -33, 1, true);
-        while(!isStopRequested() && bot.getMotorPosition("arm") < -40);
+        claw.goToAngle(0, 200);
+        arm.setPosition(-33, 1);
+        while(!isStopRequested() && arm.getPosition() < -40);
 
-        if(ringStack) bot.moveDcMotor("intakeWheels", 0);
+        if(ringStack) intakeWheels.setPower(0);
         startDrivetrain();
     }
 
     private void extendRake(){
-        bot.moveDcMotor("intake", 1);
+        intake.setPower(1);
         sleep(380);
-        bot.moveDcMotor("intake", 0);
+        intake.setPower(0);
     }
 
     private void parkOverLaunchLine(char zone){

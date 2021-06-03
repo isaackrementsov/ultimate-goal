@@ -1,17 +1,17 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.api.examples.ultimategoal;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.api.ControlledDrivetrain;
 import org.firstinspires.ftc.teamcode.api.DcMotorX;
+import org.firstinspires.ftc.teamcode.api.LimitedMotorX;
 import org.firstinspires.ftc.teamcode.api.Odometry;
-import org.firstinspires.ftc.teamcode.api.Robot;
+import org.firstinspires.ftc.teamcode.api.ServoX;
+import org.firstinspires.ftc.teamcode.api.State;
 
 @TeleOp
-public class DriveV2 extends OpMode {
-
-    private Robot bot;
+public class Drive extends OpMode {
 
     // Odometry parameters
     private int ticksPerRev = 8192;
@@ -29,9 +29,9 @@ public class DriveV2 extends OpMode {
     private double launcherSpeed = 0.68;
 
     // Using a custom state instead of saving entire gamepad1 (doing otherwise causes lag)
-    private Robot.ButtonState lastButtons1 = new Robot.ButtonState();
-    private Robot.DpadState lastDpads1 = new Robot.DpadState();
-    private Robot.BumperState lastBumpers1 = new Robot.BumperState();
+    private State.Buttons lastButtons1 = new State.Buttons();
+    private State.Dpad lastDpads1 = new State.Dpad();
+    private State.Bumpers lastBumpers1 = new State.Bumpers();
 
     private double lastTimeHit = System.currentTimeMillis();
     private boolean flipperClosed = false;
@@ -50,16 +50,63 @@ public class DriveV2 extends OpMode {
     private double[] shootingSpeeds = new double[]{0.63, 0.63, 0.63, 0.67};
     private int shootingIndex = shootingPositionsX.length - 1;
 
+    // DcMotors
+    private DcMotorX
+        mRF,
+        mLF,
+        mRB,
+        mLB,
+        wheelR,
+        wheelL,
+        wheelB,
+        intake,
+        intakeWheels,
+        launcher;
+
+    // Limited motors
+    private LimitedMotorX arm;
+
+    // Servos
+    private ServoX
+        flipper,
+        claw,
+        indicator;
+
     public void init(){
-        // Get all of the drivetrain motors
-        DcMotorX mRF = new DcMotorX(hardwareMap.dcMotor.get("mRF")),
-                mLF = new DcMotorX(hardwareMap.dcMotor.get("mLF")),
-                mRB = new DcMotorX(hardwareMap.dcMotor.get("mRB")),
-                mLB = new DcMotorX(hardwareMap.dcMotor.get("mLB"));
-        // Get the odometry wheels
-        DcMotorX wheelR = new DcMotorX(hardwareMap.dcMotor.get("mRB"), ticksPerRev, circumference),
-                wheelL = new DcMotorX(hardwareMap.dcMotor.get("mLF"), ticksPerRev, circumference),
-                wheelB = new DcMotorX(hardwareMap.dcMotor.get("mRF"), ticksPerRev, circumference);
+        // Drivetrain motors
+        mRF = new DcMotorX(hardwareMap.dcMotor.get("mRF"));
+        mLF = new DcMotorX(hardwareMap.dcMotor.get("mLF"));
+        mRB = new DcMotorX(hardwareMap.dcMotor.get("mRB"));
+        mLB = new DcMotorX(hardwareMap.dcMotor.get("mLB"));
+
+        // Odometry wheels
+        wheelR = new DcMotorX(hardwareMap.dcMotor.get("mRB"), ticksPerRev, circumference);
+        wheelL = new DcMotorX(hardwareMap.dcMotor.get("mLF"), ticksPerRev, circumference);
+        wheelB = new DcMotorX(hardwareMap.dcMotor.get("mRF"), ticksPerRev, circumference);
+
+        // Intake mechanism
+        intake = new DcMotorX(hardwareMap.dcMotor.get("intake"));
+        intakeWheels = new DcMotorX(hardwareMap.dcMotor.get("intakeWheels"));
+        intake.setBrake(true);
+
+        // Constant-velocity ring launcher
+        launcher = new DcMotorX(hardwareMap.dcMotor.get("launcher"));
+        launcher.controlVelocity();
+        // Flipper/shooter servo
+        flipper = new ServoX(hardwareMap.servo.get("flipper"));
+        flipper.setAngle(50);
+
+        // Wobble arm
+        arm = new LimitedMotorX(hardwareMap.dcMotor.get("arm"), 3*288, 360);
+        arm.setLowerLimit(hardwareMap.touchSensor.get("armLimit"));
+        arm.setBrake(true);
+        // Wobble claw
+        claw = new ServoX(hardwareMap.servo.get("claw"), 270, 180);
+        claw.setAngle(100);
+
+        // Drive-assist indicator
+        indicator = new ServoX(hardwareMap.servo.get("indicator"));
+        indicator.setAngle(70 - 20*shootingIndex);
 
         // Create an odometry instance for the drivetrain
         Odometry positionTracker = new Odometry(wheelR, wheelL, wheelB, 50, backDistancePerRadian, width, x0, y0, phi0);
@@ -75,34 +122,16 @@ public class DriveV2 extends OpMode {
         // Run it on a separate thread
         Thread drivetrainThread = new Thread(drivetrain);
         drivetrainThread.start();
-
-        this.bot = new Robot(hardwareMap, telemetry);
-
-        bot.addDcMotor("intake", true);
-        bot.addDcMotor("intakeWheels", false);
-
-        bot.addDcMotor("launcher", false);
-        bot.runAtConstantVelocity("launcher");
-
-        bot.addLimitedMotor("arm", "armLimit", "armLimit", 360, 3*288, true);
-        bot.moveToStaticPosition("arm", 0, 0, true);
-
-        bot.addServo("flipper");
-        bot.rotateServo("flipper", 50, 0);
-
-        bot.addServo("indicator");
-        bot.rotateServo("indicator", 70 - 20*shootingIndex, 0);
-
-        bot.addServo("claw", 270, 180, 0);
-        bot.rotateServo("claw", 100, 0);
     }
 
     public void start(){
-        bot.resetLimitedMotor("arm", 0.2);
-        bot.moveDcMotor("arm", armPositions[currentPositionIndex] - bot.getMotorPosition("arm"), 0.7, true);
+        arm.reset();
+        arm.resetEncoder();
+        arm.controlPosition();
+        arm.setPosition(armPositions[currentPositionIndex], 0.7);
     }
 
-    private void loopGamepad1(){
+    public void loopGamepad1(){
         double leftX = gamepad1.left_stick_x;
         double rightX = gamepad1.right_stick_x;
         double rightY = -gamepad1.right_stick_y; // Reads negative from the controller
@@ -134,7 +163,7 @@ public class DriveV2 extends OpMode {
             int max = shootingPositionsX.length - 1;
             shootingIndex = shootingIndex == max ? 0 : shootingIndex + 1;
 
-            bot.rotateServo("indicator", 70 - 20*shootingIndex, 0);
+            indicator.setAngle(70 - 20*shootingIndex);
             launcherSpeed = shootingSpeeds[shootingIndex];
         }else if(dpadDownHit){
             drivetrain.setPosition(
@@ -157,7 +186,7 @@ public class DriveV2 extends OpMode {
 
         // Reverse the drivetrain (for testing)
         if(gamepad1.left_stick_button){
-            bot.reverseDrivetrain();
+            drivetrain.reverse();
         }
 
         if(gamepad1.right_stick_button){
@@ -172,12 +201,11 @@ public class DriveV2 extends OpMode {
             intakePower = -triggerLeft;
         }
 
-        bot.moveDcMotor("intake", 2*intakePower);
-
+        intake.setPower(2*intakePower);
 
         // Power the Wobble Goal Arm
         double maxSpeed = 0.7;
-        telemetry.addData("current index", currentPositionIndex);
+
         if(bumperLeftHit){
             if(currentPositionIndex < armPositions.length - 1) currentPositionIndex++;
             else currentPositionIndex = 0;
@@ -185,70 +213,60 @@ public class DriveV2 extends OpMode {
             double pos = armPositions[currentPositionIndex];
 
             if(currentPositionIndex == 0){
-                pos += -offset - 10;
+                // Make position[0] 0 degrees after first usage (not really sure why; Eva wanted this)
+                pos -= offset - 10;
                 moveForward = true;
             }
 
-            bot.moveDcMotor("arm", pos - bot.getMotorPosition("arm"), maxSpeed, true);
+            arm.setPosition(pos, maxSpeed);
         }
         // (Optional) custom controller
         else{
-            double error = bot.getTargetPosition("arm") - bot.getMotorPosition("arm");
-            telemetry.addData("Arm error:", error);
+            double error = arm.getTargetPosition() - arm.getPosition();
             double threshold = 2;
 
             if(Math.abs(error) < threshold && moveForward){
-                bot.moveDcMotor("arm", armPositions[currentPositionIndex] - bot.getMotorPosition("arm"), maxSpeed, true);
+                arm.setPosition(armPositions[currentPositionIndex], maxSpeed);
                 moveForward = false;
             }
 
-            bot.moveDcMotor("arm", bot.getControlledSpeed(maxSpeed, threshold, error, true));
+            arm.setPower(DcMotorX.getControlledSpeed(maxSpeed, threshold, error, true));
         }
 
         // Move the claw servo
-        if(bumperRightHit){
-            if(bot.getServoAngle("claw") > 0){
-                bot.rotateServo("claw", 0, 0);
-            }else{
-                bot.rotateServo("claw", 100, 0);
-            }
-        }
+        if(bumperRightHit) claw.setAngle(claw.getAngle() > 0 ? 0 : 100);
+
 
         // Move the launcher servo
         double timeElapsed = System.currentTimeMillis() - lastTimeHit;
 
-        if((aHit || (a && timeElapsed > 450)) && bot.getMotorPower("launcher") > 0){
+        if((aHit || (a && timeElapsed > 450)) && launcher.getPower() > 0){
             lastTimeHit = System.currentTimeMillis();
             flipperClosed = false;
-            bot.rotateServo("flipper", 25, 0);
+            flipper.setAngle(25);
         }else if(timeElapsed > 200 && !flipperClosed){
             flipperClosed = true;
-            bot.rotateServo("flipper", 50, 0);
+            flipper.setAngle(50);
         }
 
 
         // Turn intake wheels on/off
-        double intakeWheelPower = bot.getMotorPower("intakeWheels");
+        double intakeWheelPower = intakeWheels.getPower();
+
         if(xHit){
             if(intakeWheelPower == 0){
-                bot.moveDcMotor("intakeWheels", 1);
+                intakeWheels.setPower(1);
             }else{
-                bot.moveDcMotor("intakeWheels", 0);
+                intakeWheels.setPower(0);
             }
         }else if(b && intakeWheelPower <= 0){
-            bot.moveDcMotor("intakeWheels", -1);
+            intakeWheels.setPower(-1);
         }else if(intakeWheelPower < 0){ //Reverse mode should only run when b is held
-            bot.moveDcMotor("intakeWheels", 0);
+            intakeWheels.setPower(0);
         }
 
         // Turn launcher flywheel on/off
-        if(yHit){
-            if(bot.getMotorPower("launcher") == 0){
-                bot.moveDcMotor("launcher", launcherSpeed);
-            }else{
-                bot.moveDcMotor("launcher", 0);
-            }
-        }
+        if(yHit) launcher.setPower(launcher.getPower() == 0 ? launcherSpeed : 0);
 
         if(dpadRightHit){
             launcherSpeed = 0.68;
@@ -256,8 +274,8 @@ public class DriveV2 extends OpMode {
             launcherSpeed = 0.6;
         }
 
-        if((dpadRightHit || dpadLeftHit) && bot.getMotorPower("launcher") > 0){
-            bot.moveDcMotor("launcher", launcherSpeed);
+        if((dpadRightHit || dpadLeftHit) && launcher.getPower() > 0){
+            launcher.setPower(launcherSpeed);
         }
         telemetry.addData("Launcher speed", 100*launcherSpeed + "%");
 
@@ -289,4 +307,5 @@ public class DriveV2 extends OpMode {
     public void loop(){
         loopGamepad1();
     }
+
 }

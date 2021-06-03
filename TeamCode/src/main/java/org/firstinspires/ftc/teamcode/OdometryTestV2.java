@@ -7,7 +7,6 @@ import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 import org.firstinspires.ftc.teamcode.api.DcMotorX;
 import org.firstinspires.ftc.teamcode.api.Drivetrain;
 import org.firstinspires.ftc.teamcode.api.Odometry;
-import org.firstinspires.ftc.teamcode.api.Robot;
 
 import java.io.File;
 import java.io.FileWriter;

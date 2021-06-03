@@ -22,6 +22,14 @@ public class ServoX {
         this.core = core;
     }
 
+    public void setDistance(double angle){
+        setAngle(angle + getAngle());
+    }
+
+    public void goToDistance(double angle, int wait) throws InterruptedException {
+        goToAngle(angle, wait);
+    }
+
     public void setAngle(double angle) {
         try {
             goToAngle(angle, 0);

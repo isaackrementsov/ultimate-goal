@@ -203,6 +203,6 @@ public class ControlledDrivetrain extends Drivetrain implements Runnable {
     // Activate/deactive position correction
     public void setActive(boolean active){ this.active = active; }
 
-    // Show whether positon correction
+    // Show whether positon correction is active
     public boolean getActive(){ return active; }
 }
